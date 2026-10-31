@@ -138,12 +138,12 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   Close Window
                 </button>
                 <a
-                  href={`https://wa.me/${COMPANY_INFO.whatsappNumber}?text=Hi%20Maati%20Tech,%20I%20just%20submitted%20a%20quote%20request%20for%20${encodeURIComponent(clientName)}`}
+                  href="https://meet.google.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                  className="px-6 py-2.5 rounded-full text-xs font-bold text-blue-800 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors"
                 >
-                  Follow up on WhatsApp
+                  Join Google Meet
                 </a>
               </div>
             </div>

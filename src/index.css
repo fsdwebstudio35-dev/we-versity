@@ -59,3 +59,13 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #8B5CF6;
 }
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}

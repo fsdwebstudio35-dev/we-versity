@@ -94,8 +94,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
               
               {/* Pill Badge */}
               <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/90 text-xs sm:text-[13px] font-bold shadow-xs">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
-                <span>Software House & Digital Agency • Serving Pakistan & UK Since 2016</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Online Classes &amp; Software House • Enroll Today</span>
               </div>
 
               {/* Main Headline */}
@@ -181,12 +181,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
 
               {/* The 3D Tech Illustration from screenshot */}
-              <div className="relative w-full max-w-[500px] overflow-visible">
-                <div className="absolute inset-0 bg-gradient-to-tr from-purple-200/40 via-indigo-100/30 to-transparent rounded-3xl blur-2xl transform scale-95 -z-10" />
+              <div className="relative w-full max-w-[500px] aspect-square overflow-hidden rounded-full border-4 border-white shadow-xl animate-float">
+                <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/70 via-purple-500/60 to-purple-400/50 rounded-full blur-2xl transform scale-95 -z-10" />
                 <img 
-                  src="/assets/aistudio/image_03e15199.png" 
+                  src="/assets/aistudio/image_ec98d7d2.png" 
                   alt="Websites & Custom Software That Mean Business"
-                  className="w-full h-auto object-contain drop-shadow-xl select-none"
+                  className="w-full h-full object-cover select-none"
                   loading="eager"
                 />
               </div>
@@ -376,7 +376,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div 
               key={course.id}
               onClick={() => onSelectCourse(course)}
-              className={`group p-6 rounded-3xl bg-white transition-all duration-300 flex flex-col justify-between relative overflow-hidden cursor-pointer hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 ${
+              className={`group p-6 rounded-3xl bg-white transition-all duration-300 flex flex-col justify-between relative overflow-hidden cursor-pointer hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 hover:bg-purple-50 ${
                 idx === 0 
                   ? 'border border-purple-300 shadow-md shadow-purple-900/5' 
                   : 'border border-purple-100/90'

@@ -70,9 +70,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setActiveTab('home')}
             className="flex items-center gap-3 group text-left focus:outline-none shrink-0"
           >
-            <div className="w-12 h-12 rounded-2xl border-2 border-purple-200 bg-white flex items-center justify-center shadow-xs group-hover:border-[#6D28D9] transition-colors overflow-hidden">
+            <div className="w-12 h-12 rounded-full border-2 border-purple-200 bg-white flex items-center justify-center shadow-xs group-hover:border-[#6D28D9] transition-colors overflow-hidden animate-float">
               <img 
-                src="/assets/aistudio/image_03e15199.png" 
+                src="/assets/aistudio/image_b3d7cc94.png" 
                 alt="WeVersity Logo" 
                 className="w-full h-full object-contain p-1"
               />

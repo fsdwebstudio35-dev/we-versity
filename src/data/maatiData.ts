@@ -578,7 +578,7 @@ export const COURSES: CourseItem[] = [
     certificate: "Certificate of Completion",
     access: "Lifetime Access",
     badge: "Bestseller",
-    image: "/assets/aistudio/Screenshot_2026-10-30_184218_848ffe02.png",
+    image: "/assets/aistudio/image_d7b57514.png",
     whatYouLearn: [
       "Mastering Google Business Profile (GBP) ranking factors for 2026",
       "Technical Local SEO audits: identifying crawl blocks & indexing issues",

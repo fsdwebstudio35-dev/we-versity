@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-purple: #6D28D9;
+    --brand-purple-light: #F5F3FF;
+    --brand-purple-dark: #5B21B6;
+    --brand-midnight: #120B2E;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #FAF9FD;
+    color: #1F2937;
+  }
+}
+
+.font-display {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+/* WeVersity purple subtle grid and dot patterns */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(109, 40, 217, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(109, 40, 217, 0.05) 1px, transparent 1px);
+}
+
+.bg-dot-pattern {
+  background-image: radial-gradient(rgba(109, 40, 217, 0.08) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+/* Glow effects */
+.glow-purple {
+  box-shadow: 0 0 50px -10px rgba(109, 40, 217, 0.25);
+}
+
+.glow-purple-subtle {
+  box-shadow: 0 10px 40px -10px rgba(109, 40, 217, 0.12);
+}
+
+/* Custom scrollbar matching WeVersity */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F3FF;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C4B5FD;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B5CF6;
+}

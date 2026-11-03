@@ -26,7 +26,7 @@ import { BlogView } from './views/BlogView';
 import { ContactView } from './views/ContactView';
 import { AdminView } from './views/AdminView';
 
-import { ServiceItem, PortfolioProject, BlogPost, CourseItem, COURSES, PORTFOLIO_PROJECTS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from './data/maatiData';
+import { ServiceItem, PortfolioProject, BlogPost, CourseItem, COURSES, PORTFOLIO_PROJECTS, TEACHERS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from './data/maatiData';
 import { AboutData, DEFAULT_ABOUT_DATA } from './data/aboutData';
 
 export default function App() {
@@ -98,9 +98,12 @@ export default function App() {
   const [teachers, setTeachers] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('weversity_teachers');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch {}
-    return [];
+    return TEACHERS;
   });
   const [sessions, setSessions] = useState<any[]>(() => {
     try {

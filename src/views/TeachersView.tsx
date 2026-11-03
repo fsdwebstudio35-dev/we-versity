@@ -22,11 +22,15 @@ import { TEACHERS, Teacher, COURSES, CourseItem, COMPANY_INFO } from '../data/ma
 interface TeachersViewProps {
   onSelectCourse?: (course: CourseItem) => void;
   onOpenQuoteModal?: (serviceId?: string) => void;
+  teachers?: any[];
+  sessions?: any[];
 }
 
 export const TeachersView: React.FC<TeachersViewProps> = ({
   onSelectCourse,
-  onOpenQuoteModal
+  onOpenQuoteModal,
+  teachers,
+  sessions
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'teachers' | 'online_classes'>('teachers');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,15 +45,39 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
     { id: 'english', label: 'Spoken English' },
   ];
 
-  const filteredTeachers = TEACHERS.filter(teacher => {
+  const teachersData = teachers && teachers.length > 0 ? teachers : TEACHERS;
+  const sessionsData = sessions && sessions.length > 0 ? sessions : [
+    {
+      id: "batch-1",
+      title: "Full-Stack Web Development Live Cohort",
+      instructor: "Rehan Ahmad & Zain Tariq",
+      schedule: "Mon, Wed, Fri • 8:00 PM - 10:00 PM PKT",
+      duration: "4 Weeks",
+      level: "Beginner to Advanced",
+      seatsLeft: "4 seats remaining",
+      description: "Interactive live Zoom sessions with real-time code debugging, git repository reviews, and production project deployment."
+    },
+    {
+      id: "batch-2",
+      title: "Claude AI & Prompt Engineering Masterclass",
+      instructor: "Shahbaz Aslam (CEO)",
+      schedule: "Tue, Thu • 7:00 PM - 9:00 PM PKT",
+      duration: "4 Weeks",
+      level: "Professionals & Founders",
+      seatsLeft: "Enrollment Open",
+      description: "Direct mentorship on Anthropic Claude 3.5 Sonnet, workflow automation, Claude Code, and building generative AI tools."
+    }
+  ];
+
+  const filteredTeachers = teachersData.filter(teacher => {
     const matchesCategory = selectedCategory === 'all' || teacher.category === selectedCategory;
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
       teacher.name.toLowerCase().includes(query) ||
       teacher.role.toLowerCase().includes(query) ||
-      teacher.specialization.toLowerCase().includes(query) ||
-      teacher.primaryCourse.toLowerCase().includes(query) ||
-      teacher.skills.some(skill => skill.toLowerCase().includes(query));
+      teacher.specialization?.toLowerCase().includes(query) ||
+      (teacher.primaryCourse || '').toLowerCase().includes(query) ||
+      (teacher.skills || []).some((skill: string) => skill.toLowerCase().includes(query));
     return matchesCategory && matchesSearch;
   });
 
@@ -65,45 +93,6 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
       onSelectCourse(COURSES[0]);
     }
   };
-
-  const onlineClassesBatches = [
-    {
-      title: "Full-Stack Web Development Live Cohort",
-      instructor: "Rehan Ahmad & Zain Tariq",
-      schedule: "Mon, Wed, Fri • 8:00 PM - 10:00 PM PKT",
-      duration: "4 Weeks",
-      level: "Beginner to Advanced",
-      seatsLeft: "4 seats remaining",
-      description: "Interactive live Zoom sessions with real-time code debugging, git repository reviews, and production project deployment."
-    },
-    {
-      title: "Claude AI & Prompt Engineering Masterclass",
-      instructor: "Shahbaz Aslam (CEO)",
-      schedule: "Tue, Thu • 7:00 PM - 9:00 PM PKT",
-      duration: "4 Weeks",
-      level: "Professionals & Founders",
-      seatsLeft: "Enrollment Open",
-      description: "Direct mentorship on Anthropic Claude 3.5 Sonnet, workflow automation, Claude Code, and building generative AI tools."
-    },
-    {
-      title: "Basic Editing Skills & Content Masterclass",
-      instructor: "Natasha Arshad",
-      schedule: "Sat, Sun • 4:00 PM - 6:00 PM PKT",
-      duration: "4 Weeks",
-      level: "Beginner Friendly",
-      seatsLeft: "6 seats remaining",
-      description: "Master video editing in CapCut, Canva, and social media content creation with live assignments and feedback."
-    },
-    {
-      title: "LinkedIn Growth & B2B Client Acquisition",
-      instructor: "Muhammad Shahab",
-      schedule: "Sat, Sun • 6:30 PM - 8:30 PM PKT",
-      duration: "4 Weeks",
-      level: "Freelancers & Marketers",
-      seatsLeft: "Enrollment Open",
-      description: "Master organic profile optimization, viral hooks, outreach funnels, and closing high-ticket international clients."
-    }
-  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16">
@@ -249,7 +238,7 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
 
                   {/* Highlights */}
                   <div className="space-y-1.5 pt-1">
-                    {teacher.highlights.map((h, i) => (
+                    {(teacher.highlights || []).map((h: string, i: number) => (
                       <div key={i} className="flex items-start gap-2 text-[11px] text-gray-600">
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#6D28D9] shrink-0 mt-0.5" />
                         <span>{h}</span>
@@ -259,7 +248,7 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
 
                   {/* Skills Tags */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {teacher.skills.map((skill) => (
+                    {(teacher.skills || []).map((skill: string) => (
                       <span
                         key={skill}
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-50 text-gray-700 border border-gray-150 group-hover:border-purple-200 group-hover:bg-purple-50 group-hover:text-purple-900 transition-colors"
@@ -303,7 +292,7 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
         /* Live Online Classes Schedule View */
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {onlineClassesBatches.map((batch, index) => (
+            {sessionsData.map((batch, index) => (
               <div 
                 key={index}
                 className="p-8 rounded-3xl bg-white border border-purple-150 hover:border-purple-300 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between space-y-6"

@@ -8,70 +8,54 @@ import {
   Zap
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from '../data/maatiData';
 
 interface EstimatorViewProps {
   onOpenQuoteModal: (serviceId?: string) => void;
   currency: 'USD' | 'PKR' | 'GBP';
   setCurrency: (currency: 'USD' | 'PKR' | 'GBP') => void;
+  config?: EstimatorConfig;
 }
 
 export const EstimatorView: React.FC<EstimatorViewProps> = ({
   onOpenQuoteModal,
   currency,
-  setCurrency
+  setCurrency,
+  config
 }) => {
+  const activeConfig = config || DEFAULT_ESTIMATOR_CONFIG;
+  const projectTypes = activeConfig.projectTypes && activeConfig.projectTypes.length > 0
+    ? activeConfig.projectTypes
+    : DEFAULT_ESTIMATOR_CONFIG.projectTypes;
+  const scaleOptions = activeConfig.scaleOptions && activeConfig.scaleOptions.length > 0
+    ? activeConfig.scaleOptions
+    : DEFAULT_ESTIMATOR_CONFIG.scaleOptions;
+  const designTiers = activeConfig.designTiers && activeConfig.designTiers.length > 0
+    ? activeConfig.designTiers
+    : DEFAULT_ESTIMATOR_CONFIG.designTiers;
+  const backendOptions = activeConfig.backendOptions && activeConfig.backendOptions.length > 0
+    ? activeConfig.backendOptions
+    : DEFAULT_ESTIMATOR_CONFIG.backendOptions;
+  const addonOptions = activeConfig.addonOptions && activeConfig.addonOptions.length > 0
+    ? activeConfig.addonOptions
+    : DEFAULT_ESTIMATOR_CONFIG.addonOptions;
+
   // Config state
-  const [projectType, setProjectType] = useState<string>('custom-web');
-  const [scale, setScale] = useState<string>('standard');
-  const [designTier, setDesignTier] = useState<string>('bespoke');
-  const [backendComplexity, setBackendComplexity] = useState<string>('moderate');
+  const [projectType, setProjectType] = useState<string>(() => projectTypes[0]?.id || 'custom-web');
+  const [scale, setScale] = useState<string>(() => scaleOptions[1]?.id || scaleOptions[0]?.id || 'standard');
+  const [designTier, setDesignTier] = useState<string>(() => designTiers[1]?.id || designTiers[0]?.id || 'bespoke');
+  const [backendComplexity, setBackendComplexity] = useState<string>(() => backendOptions[1]?.id || backendOptions[0]?.id || 'moderate');
   const [addons, setAddons] = useState<string[]>(['seo', 'payment']);
-
-  const projectTypes = [
-    { id: 'custom-web', name: 'Custom Web Application', baseUSD: 850, weeks: 3 },
-    { id: 'wordpress-woo', name: 'WordPress & WooCommerce Store', baseUSD: 700, weeks: 2 },
-    { id: 'laravel-app', name: 'Custom Laravel Software / Portal', baseUSD: 1400, weeks: 4 },
-    { id: 'saas-platform', name: 'Multi-Tenant SaaS Platform', baseUSD: 2200, weeks: 6 },
-    { id: 'mobile-app', name: 'Flutter Mobile App (iOS & Android)', baseUSD: 1800, weeks: 5 },
-    { id: 'erp-pos', name: 'Custom ERP, CRM & POS System', baseUSD: 1600, weeks: 4 },
-  ];
-
-  const scaleOptions = [
-    { id: 'starter', label: 'Compact / MVP (1 - 5 Views)', multiplier: 0.85, weeksDelta: -0.5 },
-    { id: 'standard', label: 'Standard Business (6 - 12 Views)', multiplier: 1.0, weeksDelta: 0 },
-    { id: 'large', label: 'Comprehensive (13 - 25 Views)', multiplier: 1.35, weeksDelta: 1.5 },
-    { id: 'enterprise', label: 'Enterprise (25+ Modules)', multiplier: 1.8, weeksDelta: 3 },
-  ];
-
-  const designTiers = [
-    { id: 'clean', label: 'Modern & Clean', costUSD: 0, desc: 'Responsive, crisp typography, clean layout' },
-    { id: 'bespoke', label: 'Bespoke Custom UI/UX', costUSD: 250, desc: 'Hand-tailored branding, micro-interactions' },
-    { id: 'interactive', label: 'High-Impact Interactive / 3D', costUSD: 500, desc: 'Advanced animations, custom graphics' }
-  ];
-
-  const backendOptions = [
-    { id: 'light', label: 'Lightweight / Headless', costUSD: 0 },
-    { id: 'moderate', label: 'Standard REST API & Auth', costUSD: 200 },
-    { id: 'complex', label: 'Advanced RBAC, Queues & Cloud DB', costUSD: 550 },
-  ];
-
-  const addonOptions = [
-    { id: 'payment', name: 'Payment Gateway (Stripe/PayPal/Local)', costUSD: 150 },
-    { id: 'seo', name: 'Advanced Technical SEO & Schema Audit', costUSD: 180 },
-    { id: 'multilingual', name: 'Multilingual / Multi-Currency Logic', costUSD: 140 },
-    { id: 'notifications', name: 'SMS & WhatsApp Notification Hooks', costUSD: 120 },
-    { id: 'hypercare', name: 'Extended 90-Day SLA & Priority Maintenance', costUSD: 220 },
-  ];
 
   const toggleAddon = (id: string) => {
     setAddons(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  // Calculation
-  const selectedTypeObj = projectTypes.find(p => p.id === projectType) || projectTypes[0];
-  const selectedScaleObj = scaleOptions.find(s => s.id === scale) || scaleOptions[1];
-  const selectedDesignObj = designTiers.find(d => d.id === designTier) || designTiers[1];
-  const selectedBackendObj = backendOptions.find(b => b.id === backendComplexity) || backendOptions[1];
+  // Safe Selection Calculation
+  const selectedTypeObj = projectTypes.find(p => p.id === projectType) || projectTypes[0] || { id: 'custom-web', name: 'Custom Web Application', baseUSD: 850, weeks: 3 };
+  const selectedScaleObj = scaleOptions.find(s => s.id === scale) || scaleOptions[0] || { id: 'standard', label: 'Standard Business', multiplier: 1.0, weeksDelta: 0 };
+  const selectedDesignObj = designTiers.find(d => d.id === designTier) || designTiers[0] || { id: 'clean', label: 'Modern & Clean', costUSD: 0, desc: '' };
+  const selectedBackendObj = backendOptions.find(b => b.id === backendComplexity) || backendOptions[0] || { id: 'light', label: 'Lightweight', costUSD: 0 };
   
   const addonsTotalUSD = addons.reduce((sum, currentAddonId) => {
     const item = addonOptions.find(a => a.id === currentAddonId);
@@ -87,15 +71,18 @@ export const EstimatorView: React.FC<EstimatorViewProps> = ({
 
   const totalEstimatedWeeks = Math.max(2, Math.round(selectedTypeObj.weeks + selectedScaleObj.weeksDelta));
 
+  const pkrRate = activeConfig.currencyRates?.PKR ?? 280;
+  const gbpRate = activeConfig.currencyRates?.GBP ?? 0.79;
+
   const formatCurrency = (amountUSD: number) => {
     if (currency === 'PKR') {
-      const pkr = amountUSD * 280;
+      const pkr = Math.round(amountUSD * pkrRate);
       return `₨ ${pkr.toLocaleString()}`;
     } else if (currency === 'GBP') {
-      const gbp = Math.round(amountUSD * 0.79);
+      const gbp = Math.round(amountUSD * gbpRate);
       return `£ ${gbp.toLocaleString()}`;
     }
-    return `$ ${amountUSD.toLocaleString()}`;
+    return `$ ${Math.round(amountUSD).toLocaleString()}`;
   };
 
   const handleCelebrateEstimate = () => {

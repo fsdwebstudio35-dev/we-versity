@@ -31,7 +31,8 @@ import {
   Languages,
   FileSpreadsheet,
   Store,
-  Banknote
+  Banknote,
+  Lock
 } from 'lucide-react';
 import { 
   COMPANY_INFO, 
@@ -52,6 +53,11 @@ interface HomeViewProps {
   onSelectProject: (project: PortfolioProject) => void;
   onSelectCourse: (course: CourseItem) => void;
   currency: 'USD' | 'PKR' | 'GBP';
+  onOpenAdminLogin?: () => void;
+  onOpenAdminPanel?: () => void;
+  isDeviceAuthorized?: boolean;
+  projects?: PortfolioProject[];
+  companyInfo?: any;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -59,14 +65,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenQuoteModal,
   onSelectProject,
   onSelectCourse,
-  currency
+  currency,
+  onOpenAdminLogin,
+  onOpenAdminPanel,
+  isDeviceAuthorized,
+  projects
 }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [selectedPortfolioCategory, setSelectedPortfolioCategory] = useState<string>('all');
 
+  const handleOpenAdmin = () => {
+    const authToken = localStorage.getItem('weversity_admin_auth');
+    if (authToken && onOpenAdminPanel) {
+      onOpenAdminPanel();
+    } else if (onOpenAdminLogin) {
+      onOpenAdminLogin();
+    }
+  };
+
+  const projectList = projects && projects.length > 0 ? projects : PORTFOLIO_PROJECTS;
+
   const filteredProjects = selectedPortfolioCategory === 'all'
-    ? PORTFOLIO_PROJECTS
-    : PORTFOLIO_PROJECTS.filter(p => p.category === selectedPortfolioCategory);
+    ? projectList
+    : projectList.filter(p => p.category === selectedPortfolioCategory);
 
   const getCoursePrice = (usd: number) => {
     if (currency === 'PKR') {
@@ -152,6 +173,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <MessageCircle className="w-4 h-4 text-emerald-600 fill-emerald-600" />
                   <span>WhatsApp Direct</span>
                 </a>
+
+                {/* 5. Admin Panel Button (Requested directly on Home Page) */}
+                {isDeviceAuthorized && (
+                  <button
+                    onClick={handleOpenAdmin}
+                    className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-[#18113C] via-[#2D1457] to-[#4C1D95] hover:from-[#251249] hover:to-[#5B21B6] border border-purple-500/40 shadow-lg shadow-purple-950/25 transition-all flex items-center gap-2.5 group hover:scale-[1.02] active:scale-[0.98]"
+                    title="Admin Backend (Password Protected)"
+                  >
+                    <div className="w-5 h-5 rounded-md bg-purple-500/30 flex items-center justify-center text-purple-300 group-hover:text-white transition-colors">
+                      <Lock className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Admin Panel</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-900/80 text-purple-200 border border-purple-400/30 font-semibold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Backend
+                    </span>
+                  </button>
+                )}
 
               </div>
 
@@ -680,6 +719,60 @@ export const HomeView: React.FC<HomeViewProps> = ({
           })}
         </div>
       </section>
+
+      {/* 7. ADMIN BACKEND PORTAL CARD (DIRECTLY ON HOME PAGE) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0B0818] via-[#170E33] to-[#2B0E5A] border border-purple-500/30 p-8 sm:p-10 shadow-2xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold">
+                <Lock className="w-3.5 h-3.5 text-purple-400" />
+                <span>WeVersity Management Portal</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-bold text-white font-display">
+                WeVersity Admin Backend Access
+              </h3>
+              <p className="text-purple-200/80 text-sm leading-relaxed">
+                Direct administrative access to live site analytics, incoming quote requests & student messages, course management, teacher records, and portal configuration. Protected with your master password.
+              </p>
+            </div>
+            <button
+              onClick={handleOpenAdmin}
+              className="shrink-0 px-6 py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] shadow-xl shadow-purple-900/40 flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95 border border-purple-400/40 group"
+            >
+              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
+                <Lock className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span>Open Admin Backend</span>
+              <ArrowRight className="w-4 h-4 text-purple-200 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Floating Quick Admin Button on Home Page (Bottom Left) */}
+      {isDeviceAuthorized && (
+        <div className="fixed bottom-6 left-6 z-40">
+          <button
+            onClick={handleOpenAdmin}
+            className="group flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#110C24]/95 hover:bg-[#1A1238] text-white border border-purple-500/40 shadow-2xl shadow-purple-950/60 backdrop-blur-md transition-all hover:scale-[1.03] active:scale-[0.97]"
+            title="Open Admin Backend (Password Protected)"
+          >
+            <div className="w-7 h-7 rounded-full bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300 group-hover:text-white transition-colors">
+              <Lock className="w-3.5 h-3.5" />
+            </div>
+            <div className="text-left pr-1">
+              <div className="text-xs font-bold leading-tight flex items-center gap-1.5 text-purple-100">
+                <span>Admin Backend</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              </div>
+              <div className="text-[10px] text-purple-300/80 leading-none mt-0.5">Password Access</div>
+            </div>
+          </button>
+        </div>
+      )}
 
     </div>
   );

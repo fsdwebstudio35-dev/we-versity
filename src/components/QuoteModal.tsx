@@ -41,6 +41,20 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Send to backend API so admin sees it in real-time
+    fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: clientName,
+        email: clientEmail,
+        phone: clientPhone,
+        service: selectedService,
+        message: `${projectDescription} (Budget: ${getBudgetText()}, Timeline: ${timeline})`,
+        subject: `Quote: ${selectedService}`
+      })
+    }).catch(() => {});
+
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSubmitted(true);

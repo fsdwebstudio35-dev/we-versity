@@ -13,14 +13,18 @@ import { PORTFOLIO_PROJECTS, PortfolioProject } from '../data/maatiData';
 interface PortfolioViewProps {
   onSelectProject: (project: PortfolioProject) => void;
   onOpenQuoteModal: () => void;
+  projects?: PortfolioProject[];
 }
 
 export const PortfolioView: React.FC<PortfolioViewProps> = ({
   onSelectProject,
-  onOpenQuoteModal
+  onOpenQuoteModal,
+  projects
 }) => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const projectList = projects && projects.length > 0 ? projects : PORTFOLIO_PROJECTS;
 
   const categories = [
     { id: 'all', label: 'All Projects' },
@@ -31,7 +35,7 @@ export const PortfolioView: React.FC<PortfolioViewProps> = ({
     { id: 'mobile', label: 'Mobile Apps' }
   ];
 
-  const filtered = PORTFOLIO_PROJECTS.filter((item) => {
+  const filtered = projectList.filter((item) => {
     const matchesCat = activeCategory === 'all' || item.category === activeCategory;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||

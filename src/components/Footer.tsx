@@ -20,15 +20,24 @@ interface FooterProps {
   setActiveTab: (tab: string) => void;
   onSelectService: (service: ServiceItem) => void;
   onOpenQuoteModal: () => void;
+  onOpenAdminLogin?: () => void;
+  companyInfo?: any;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   setActiveTab,
   onSelectService,
-  onOpenQuoteModal
+  onOpenQuoteModal,
+  onOpenAdminLogin,
+  companyInfo
 }) => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+
+  const brandName = companyInfo?.name || 'WEVERSITY';
+  const brandLogo = companyInfo?.logo || '/assets/aistudio/image_03e15199.png';
+  const brandPhone = companyInfo?.phone || COMPANY_INFO.phone;
+  const brandEmail = companyInfo?.email || COMPANY_INFO.email;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +87,7 @@ export const Footer: React.FC<FooterProps> = ({
                   rel="noopener noreferrer"
                   className="px-6 py-3.5 rounded-xl font-semibold text-sm text-emerald-300 bg-emerald-950/50 border border-emerald-800/60 hover:bg-emerald-900/50 transition-all flex items-center justify-center gap-2"
                 >
-                  <span>Quick WhatsApp: {COMPANY_INFO.phone}</span>
+                  <span>Quick WhatsApp: {brandPhone}</span>
                 </a>
               </div>
             </div>
@@ -96,14 +105,14 @@ export const Footer: React.FC<FooterProps> = ({
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6D28D9] to-purple-600 p-0.5 overflow-hidden">
                 <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center overflow-hidden">
                   <img 
-                    src="/assets/aistudio/image_03e15199.png" 
-                    alt="WeVersity Logo" 
+                    src={brandLogo} 
+                    alt={`${brandName} Logo`} 
                     className="w-full h-full object-contain p-0.5"
                   />
                 </div>
               </div>
               <span className="font-display font-bold text-xl text-white tracking-tight">
-                WE<span className="text-purple-400">VERSITY</span>
+                {brandName.substring(0, 2).toUpperCase()}<span className="text-purple-400">{brandName.substring(2).toUpperCase()}</span>
               </span>
             </div>
             
@@ -193,6 +202,11 @@ export const Footer: React.FC<FooterProps> = ({
                 </button>
               </li>
               <li>
+                <button onClick={() => setActiveTab('team')} className="hover:text-white transition-colors">
+                  Engineering & Tech Team
+                </button>
+              </li>
+              <li>
                 <button onClick={() => setActiveTab('estimator')} className="hover:text-white transition-colors text-purple-400 font-medium">
                   Project Cost Calculator
                 </button>
@@ -226,12 +240,12 @@ export const Footer: React.FC<FooterProps> = ({
                 <span className="text-[10px] text-purple-400 bg-purple-950 px-1.5 py-0.5 rounded border border-purple-800/50">PK HQ</span>
               </div>
               <p className="text-xs text-purple-200/80 leading-relaxed">
-                {COMPANY_INFO.headquarters.address}
+                {companyInfo?.address || COMPANY_INFO.headquarters.address}
               </p>
               <div className="text-xs text-purple-300 flex items-center gap-1.5 pt-1">
                 <Phone className="w-3 h-3 text-purple-400" />
-                <a href={`tel:${COMPANY_INFO.headquarters.phone.replace(/\s+/g, '')}`} className="hover:text-white">
-                  {COMPANY_INFO.headquarters.phone}
+                <a href={`tel:${brandPhone.replace(/\s+/g, '')}`} className="hover:text-white">
+                  {brandPhone}
                 </a>
               </div>
               <div className="text-[11px] text-purple-400/90 flex items-center gap-1.5">
@@ -289,7 +303,13 @@ export const Footer: React.FC<FooterProps> = ({
 
         {/* Bottom copyright line */}
         <div className="mt-8 pt-8 border-t border-purple-900/40 flex flex-col sm:flex-row items-center justify-between text-xs text-purple-400/80 gap-4">
-          <p>© {new Date().getFullYear()} {COMPANY_INFO.legalName}. All rights reserved.</p>
+          <button 
+            onClick={onOpenAdminLogin}
+            title="Administrator Portal"
+            className="hover:text-purple-300 text-left transition-colors cursor-default"
+          >
+            © {new Date().getFullYear()} {COMPANY_INFO.legalName}. All rights reserved.
+          </button>
           <div className="flex items-center gap-6">
             <button onClick={() => setActiveTab('about')} className="hover:text-white">Privacy Policy</button>
             <button onClick={() => setActiveTab('about')} className="hover:text-white">Terms of Service</button>

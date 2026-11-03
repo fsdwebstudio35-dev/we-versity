@@ -23,6 +23,10 @@ interface NavbarProps {
   onSelectService: (service: ServiceItem) => void;
   currency: 'USD' | 'PKR' | 'GBP';
   setCurrency: (currency: 'USD' | 'PKR' | 'GBP') => void;
+  isDeviceAuthorized: boolean;
+  onOpenAdminLogin: () => void;
+  onOpenAdminPanel: () => void;
+  companyInfo?: any;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -31,7 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenQuoteModal,
   onSelectService,
   currency,
-  setCurrency
+  setCurrency,
+  isDeviceAuthorized,
+  onOpenAdminLogin,
+  onOpenAdminPanel,
+  companyInfo
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
@@ -50,15 +58,25 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const navItems = [
+  interface NavItem {
+    id: string;
+    label: string;
+    hasDropdown?: boolean;
+  }
+
+  const navItems: NavItem[] = [
     { id: 'home', label: 'Home' },
     { id: 'courses', label: 'Courses' },
     { id: 'portfolio', label: 'Portfolio' },
+    { id: 'team', label: 'Team' },
     { id: 'estimator', label: 'Cost Estimator' },
     { id: 'about', label: 'About' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'contact', label: 'Contact' },
   ];
+
+  const brandName = companyInfo?.name || 'WEVERSITY';
+  const brandLogo = companyInfo?.logo || '/assets/aistudio/image_b3d7cc94.png';
 
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/95 border-b border-gray-100 shadow-xs transition-all">
@@ -68,19 +86,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Brand Logo matching uploaded screenshot */}
           <button 
             onClick={() => setActiveTab('home')}
+            onDoubleClick={onOpenAdminLogin}
+            title="Double-click to open Admin Portal"
             className="flex items-center gap-3 group text-left focus:outline-none shrink-0"
           >
             <div className="w-12 h-12 rounded-full border-2 border-purple-200 bg-white flex items-center justify-center shadow-xs group-hover:border-[#6D28D9] transition-colors overflow-hidden animate-float">
               <img 
-                src="/assets/aistudio/image_b3d7cc94.png" 
-                alt="WeVersity Logo" 
+                src={brandLogo} 
+                alt={`${brandName} Logo`} 
                 className="w-full h-full object-contain p-1"
               />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-display font-black text-xl tracking-tight text-[#18113C] group-hover:text-[#6D28D9] transition-colors">
-                  WEVERSITY
+                  {brandName.toUpperCase()}
                 </span>
               </div>
               <p className="text-[11px] text-gray-500 font-medium tracking-wide">

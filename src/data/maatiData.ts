@@ -387,7 +387,7 @@ export interface CourseItem {
   id: string;
   title: string;
   description: string;
-  iconType: 'web' | 'laravel' | 'wordpress' | 'flutter' | 'woocommerce' | 'ecommerce' | 'office' | 'english' | 'ai' | 'seo';
+  iconType: 'web' | 'laravel' | 'wordpress' | 'flutter' | 'woocommerce' | 'ecommerce' | 'office' | 'english' | 'ai' | 'seo' | 'finance';
   tags: string[];
   priceUSD: number;
   originalPriceUSD: number;
@@ -942,3 +942,273 @@ export const TEACHERS: Teacher[] = [
   },
 ];
 
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  department: 'all' | 'leadership' | 'engineering' | 'ai' | 'growth' | 'design';
+  departmentLabel: string;
+  location: string;
+  experience: string;
+  avatar: string;
+  bio: string;
+  keyAchievement: string;
+  techStack: string[];
+  socials: {
+    linkedin?: string;
+    github?: string;
+    portfolio?: string;
+  };
+}
+
+export const TEAM_MEMBERS: TeamMember[] = [
+  {
+    id: "shahbaz-aslam",
+    name: "Shahbaz Aslam",
+    role: "Chief Executive Officer & Founder",
+    department: "leadership",
+    departmentLabel: "Executive & Leadership",
+    location: "Lahore, Pakistan",
+    experience: "10+ Years",
+    avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png",
+    bio: "Founder of WeVersity leading global software operations, enterprise AI architectures, client partnerships, and company strategy across Pakistan and the UK.",
+    keyAchievement: "Founded WeVersity; scaled to 250+ enterprise deployments worldwide",
+    techStack: ["Strategic Leadership", "Claude AI Architecture", "System Design", "Enterprise Roadmaps"],
+    socials: {
+      linkedin: "https://www.linkedin.com/company/weversity",
+      github: "https://github.com/weversity"
+    }
+  },
+  {
+    id: "rehan-ahmad",
+    name: "Rehan Ahmad",
+    role: "Lead Software Architect & Principal Web Engineer",
+    department: "engineering",
+    departmentLabel: "Full-Stack Engineering",
+    location: "Lahore, Pakistan",
+    experience: "7+ Years",
+    avatar: "/assets/aistudio/Screenshot_2026-10-30_181050_3b66291a.png",
+    bio: "Leads frontend engineering and client web architecture. Obsessed with sub-second page performance, modern React/Next.js frameworks, and modular component systems.",
+    keyAchievement: "Engineered 80+ high-traffic web applications with 99+ PageSpeed scores",
+    techStack: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Web Vitals", "State Management"],
+    socials: {
+      linkedin: "https://linkedin.com",
+      github: "https://github.com/weversity"
+    }
+  },
+  {
+    id: "zain-tariq",
+    name: "Zain Tariq",
+    role: "Senior Full-Stack Engineer & Mobile Lead",
+    department: "engineering",
+    departmentLabel: "Full-Stack Engineering",
+    location: "Lahore, Pakistan",
+    experience: "6+ Years",
+    avatar: "/assets/aistudio/Screenshot_2026-10-30_181903_ee378270.png",
+    bio: "Specializes in scalable backend APIs, database indexing with MySQL/PostgreSQL, and cross-platform mobile app development with Flutter.",
+    keyAchievement: "Built multi-branch ERP & mobile POS handling 20k+ daily transactions",
+    techStack: ["Laravel", "Flutter", "PHP 8", "MySQL", "REST APIs", "Docker"],
+    socials: {
+      linkedin: "https://linkedin.com",
+      github: "https://github.com/weversity"
+    }
+  },
+  {
+    id: "m-taibe",
+    name: "~ℳ.𝒯𝒶𝒾𝒷ℯ",
+    role: "Senior Frontend Architect & AI Corporate Specialist",
+    department: "ai",
+    departmentLabel: "AI & Generative Tech",
+    location: "Lahore, Pakistan",
+    experience: "7+ Years",
+    avatar: "/assets/aistudio/image_85a3982c.png",
+    bio: "Architect of responsive web platforms and enterprise AI workflows for organizations, focusing on workflow automation, candidate screening, and compliance.",
+    keyAchievement: "Designed automated AI workflows adopted across multiple enterprise teams",
+    techStack: ["AI Automation", "React", "Next.js", "HR Tech", "Enterprise UI"],
+    socials: {
+      linkedin: "https://linkedin.com",
+      portfolio: "https://web-develpor-lgdu.vercel.app/"
+    }
+  },
+  {
+    id: "muhammad-shahab",
+    name: "Muhammad Shahab",
+    role: "Growth Director & Lead Web Strategist",
+    department: "growth",
+    departmentLabel: "Growth & Client Acquisition",
+    location: "Lahore, Pakistan",
+    experience: "6+ Years",
+    avatar: "/assets/aistudio/image_f804651e.png",
+    bio: "Oversees international client acquisition funnels, LinkedIn ecosystem architectures, conversion rate optimization, and high-impact B2B pipelines.",
+    keyAchievement: "Generated over $1.5M in client pipeline via organic and paid funnels",
+    techStack: ["B2B Acquisition", "Conversion Optimization", "LinkedIn Growth", "Web Systems"],
+    socials: {
+      linkedin: "https://linkedin.com",
+      portfolio: "https://abdullah-wab-developer-2cr3.vercel.app/"
+    }
+  },
+  {
+    id: "zohaib-noman",
+    name: "Zohaib Noman",
+    role: "Head of Technical SEO & Search Intelligence",
+    department: "growth",
+    departmentLabel: "Growth & Client Acquisition",
+    location: "Lahore, Pakistan",
+    experience: "7+ Years",
+    avatar: "/assets/aistudio/Screenshot_2026-10-30_184218_848ffe02.png",
+    bio: "Specializes in local 3-pack dominance, structured schema data (JSON-LD), Generative Engine Optimization (GEO), and high-authority local citations.",
+    keyAchievement: "Ranked 100+ businesses #1 on Google Local 3-Pack across UK & PK",
+    techStack: ["Technical SEO", "Google Knowledge Graph", "JSON-LD Schemas", "Audit Tools"],
+    socials: {
+      linkedin: "https://linkedin.com"
+    }
+  },
+  {
+    id: "sebastian-bui",
+    name: "Sebastian Bui",
+    role: "Senior E-Commerce Architect & Cloud Automations",
+    department: "engineering",
+    departmentLabel: "Full-Stack Engineering",
+    location: "London, UK / Remote",
+    experience: "8+ Years",
+    avatar: "/assets/aistudio/image_a068702f.png",
+    bio: "Expert in enterprise Shopify Plus, custom WooCommerce architecture, high-volume checkout funnels, and automated inventory sync integrations.",
+    keyAchievement: "Scaled multiple e-commerce storefronts to 7-figure quarterly turnover",
+    techStack: ["Shopify Plus", "WooCommerce", "Liquid", "Stripe Routing", "Cloud Automations"],
+    socials: {
+      linkedin: "https://linkedin.com"
+    }
+  },
+  {
+    id: "natasha-arshad",
+    name: "Natasha Arshad",
+    role: "Creative Director & Senior Visual Storyteller",
+    department: "design",
+    departmentLabel: "Creative & Design",
+    location: "Lahore, Pakistan",
+    experience: "7+ Years",
+    avatar: "/assets/aistudio/image_46cdf4b9.png",
+    bio: "Heads creative media, brand identity design, short-form viral video editing, and modern digital asset production across web and social channels.",
+    keyAchievement: "Directed visual branding and media campaigns garnering 5M+ organic impressions",
+    techStack: ["CapCut", "Canva Pro", "Adobe Creative Suite", "Visual Branding", "Motion Media"],
+    socials: {
+      linkedin: "https://linkedin.com"
+    }
+  },
+  {
+    id: "ayesha-noor",
+    name: "Ms. Ayesha Noor",
+    role: "Corporate Communications Lead & Executive Coach",
+    department: "leadership",
+    departmentLabel: "Executive & Leadership",
+    location: "Lahore, Pakistan",
+    experience: "6+ Years",
+    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+    bio: "Guides client relationship management, international stakeholder communications, cross-border negotiation, and developer presentation coaching.",
+    keyAchievement: "Trained 2,000+ engineers and professionals for remote multinational roles",
+    techStack: ["Client Relations", "Executive Communication", "Cross-Border Negotiations", "Team Coaching"],
+    socials: {
+      linkedin: "https://linkedin.com"
+    }
+  },
+  {
+    id: "hamza-ali",
+    name: "Hamza Ali",
+    role: "Senior Cloud DevOps & Infrastructure Engineer",
+    department: "engineering",
+    departmentLabel: "Full-Stack Engineering",
+    location: "Lahore, Pakistan",
+    experience: "5+ Years",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    bio: "Manages server deployments, Docker container orchestration, automated CI/CD pipelines, VPS server hardening, and zero-downtime database backups.",
+    keyAchievement: "Maintains 99.98% uptime SLA across all production client platforms",
+    techStack: ["AWS Cloud", "Docker", "Linux Ubuntu", "Nginx", "CI/CD Pipelines", "Redis"],
+    socials: {
+      linkedin: "https://linkedin.com",
+      github: "https://github.com/weversity"
+    }
+  }
+];
+
+export interface EstimatorProjectType {
+  id: string;
+  name: string;
+  baseUSD: number;
+  weeks: number;
+}
+
+export interface EstimatorScaleOption {
+  id: string;
+  label: string;
+  multiplier: number;
+  weeksDelta: number;
+}
+
+export interface EstimatorDesignTier {
+  id: string;
+  label: string;
+  costUSD: number;
+  desc: string;
+}
+
+export interface EstimatorBackendOption {
+  id: string;
+  label: string;
+  costUSD: number;
+}
+
+export interface EstimatorAddonOption {
+  id: string;
+  name: string;
+  costUSD: number;
+}
+
+export interface EstimatorConfig {
+  projectTypes: EstimatorProjectType[];
+  scaleOptions: EstimatorScaleOption[];
+  designTiers: EstimatorDesignTier[];
+  backendOptions: EstimatorBackendOption[];
+  addonOptions: EstimatorAddonOption[];
+  currencyRates: {
+    PKR: number;
+    GBP: number;
+  };
+}
+
+export const DEFAULT_ESTIMATOR_CONFIG: EstimatorConfig = {
+  projectTypes: [
+    { id: 'custom-web', name: 'Custom Web Application', baseUSD: 850, weeks: 3 },
+    { id: 'wordpress-woo', name: 'WordPress & WooCommerce Store', baseUSD: 700, weeks: 2 },
+    { id: 'laravel-app', name: 'Custom Laravel Software / Portal', baseUSD: 1400, weeks: 4 },
+    { id: 'saas-platform', name: 'Multi-Tenant SaaS Platform', baseUSD: 2200, weeks: 6 },
+    { id: 'mobile-app', name: 'Flutter Mobile App (iOS & Android)', baseUSD: 1800, weeks: 5 },
+    { id: 'erp-pos', name: 'Custom ERP, CRM & POS System', baseUSD: 1600, weeks: 4 },
+  ],
+  scaleOptions: [
+    { id: 'starter', label: 'Compact / MVP (1 - 5 Views)', multiplier: 0.85, weeksDelta: -0.5 },
+    { id: 'standard', label: 'Standard Business (6 - 12 Views)', multiplier: 1.0, weeksDelta: 0 },
+    { id: 'large', label: 'Comprehensive (13 - 25 Views)', multiplier: 1.35, weeksDelta: 1.5 },
+    { id: 'enterprise', label: 'Enterprise (25+ Modules)', multiplier: 1.8, weeksDelta: 3 },
+  ],
+  designTiers: [
+    { id: 'clean', label: 'Modern & Clean', costUSD: 0, desc: 'Responsive, crisp typography, clean layout' },
+    { id: 'bespoke', label: 'Bespoke Custom UI/UX', costUSD: 250, desc: 'Hand-tailored branding, micro-interactions' },
+    { id: 'interactive', label: 'High-Impact Interactive / 3D', costUSD: 500, desc: 'Advanced animations, custom graphics' }
+  ],
+  backendOptions: [
+    { id: 'light', label: 'Lightweight / Headless', costUSD: 0 },
+    { id: 'moderate', label: 'Standard REST API & Auth', costUSD: 200 },
+    { id: 'complex', label: 'Advanced RBAC, Queues & Cloud DB', costUSD: 550 },
+  ],
+  addonOptions: [
+    { id: 'payment', name: 'Payment Gateway (Stripe/PayPal/Local)', costUSD: 150 },
+    { id: 'seo', name: 'Advanced Technical SEO & Schema Audit', costUSD: 180 },
+    { id: 'multilingual', name: 'Multilingual / Multi-Currency Logic', costUSD: 140 },
+    { id: 'notifications', name: 'SMS & WhatsApp Notification Hooks', costUSD: 120 },
+    { id: 'hypercare', name: 'Extended 90-Day SLA & Priority Maintenance', costUSD: 220 },
+  ],
+  currencyRates: {
+    PKR: 280,
+    GBP: 0.79
+  }
+};

@@ -16,9 +16,13 @@ import { COMPANY_INFO, SERVICES } from '../data/maatiData';
 
 interface ContactViewProps {
   currency: 'USD' | 'PKR' | 'GBP';
+  companyInfo?: any;
 }
 
-export const ContactView: React.FC<ContactViewProps> = ({ currency }) => {
+export const ContactView: React.FC<ContactViewProps> = ({ currency, companyInfo }) => {
+  const brandPhone = companyInfo?.phone || COMPANY_INFO.phone;
+  const brandEmail = companyInfo?.email || COMPANY_INFO.email;
+  const brandAddress = companyInfo?.address || COMPANY_INFO.headquarters.address;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -33,9 +37,24 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency }) => {
     e.preventDefault();
     setSubmitting(true);
 
+    // Post to backend API for admin inbox
+    fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        company,
+        service,
+        message: `${message} (Company: ${company || 'N/A'}, Budget: ${budget})`,
+        subject: `Contact: ${service}`
+      })
+    }).catch(() => {});
+
     setTimeout(() => {
-      setSubmitting(false);
       setSubmitted(true);
+      setSubmitting(false);
       try {
         confetti({
           particleCount: 110,
@@ -98,7 +117,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency }) => {
               className="w-full py-3 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25"
             >
               <MessageCircle className="w-4 h-4 fill-white" />
-              <span>Open WhatsApp: {COMPANY_INFO.phone}</span>
+              <span>Open WhatsApp: {brandPhone}</span>
             </a>
           </div>
 
@@ -116,24 +135,24 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency }) => {
             <div className="space-y-1">
               <h4 className="text-sm font-bold text-gray-900">{COMPANY_INFO.headquarters.title}</h4>
               <p className="text-xs text-gray-600 leading-relaxed">
-                {COMPANY_INFO.headquarters.address}
+                {brandAddress}
               </p>
             </div>
 
             <div className="space-y-2 text-xs pt-1">
               <a
-                href={`tel:${COMPANY_INFO.phone.replace(/\s+/g, '')}`}
+                href={`tel:${brandPhone.replace(/\s+/g, '')}`}
                 className="flex items-center gap-2 text-gray-700 hover:text-[#6D28D9] transition-colors font-medium"
               >
                 <Phone className="w-3.5 h-3.5 text-[#6D28D9]" />
-                <span>{COMPANY_INFO.phone}</span>
+                <span>{brandPhone}</span>
               </a>
               <a
-                href={`mailto:${COMPANY_INFO.email}`}
+                href={`mailto:${brandEmail}`}
                 className="flex items-center gap-2 text-gray-700 hover:text-[#6D28D9] transition-colors font-medium"
               >
                 <Mail className="w-3.5 h-3.5 text-[#6D28D9]" />
-                <span>{COMPANY_INFO.email}</span>
+                <span>{brandEmail}</span>
               </a>
               <div className="flex items-center gap-2 text-gray-500">
                 <Clock className="w-3.5 h-3.5 text-emerald-600" />
@@ -146,7 +165,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency }) => {
               <div className="h-32 w-full rounded-2xl bg-purple-50/70 border border-purple-150 relative overflow-hidden flex flex-col items-center justify-center p-4 text-center group">
                 <div className="absolute inset-0 bg-grid-pattern opacity-50" />
                 <MapPin className="w-6 h-6 text-[#6D28D9] mb-1 z-10 animate-bounce" />
-                <span className="text-xs font-bold text-gray-900 z-10">Turner Road, Garhi Shahu, Lahore</span>
+                <span className="text-xs font-bold text-gray-900 z-10">{brandAddress}</span>
                 <span className="text-[10px] text-gray-500 z-10">Near Allama Iqbal Road & Mall Road</span>
                 <a
                   href="https://www.google.com/maps/place/Web+Developer+as/@31.4228025,72.4984779,10z/data=!3m1!4b1!4m6!3m5!1s0x6d14276cc5e1dce9:0x69a577065b9c08a5!8m2!3d31.4235715!4d73.089301!16s%2Fg%2F11zzv2sdb3?entry=ttu&g_ep=EgoyMDI2MTAyOC4wIKXMDSoASAFQAw%3D%3D"
@@ -207,7 +226,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency }) => {
               <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-xs text-gray-700 max-w-sm mx-auto text-left space-y-1">
                 <div>✓ Ticket created in WeVersity CRM</div>
                 <div>✓ Confidentiality guaranteed under standard NDA</div>
-                <div>✓ Direct phone contact: {COMPANY_INFO.phone}</div>
+                <div>✓ Direct phone contact: {brandPhone}</div>
               </div>
               <button
                 onClick={() => {

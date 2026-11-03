@@ -13,20 +13,214 @@ import { CaseStudyModal } from './components/CaseStudyModal';
 import { ArticleModal } from './components/ArticleModal';
 import { Laptop, Code2, Smartphone, ArrowRight, ShoppingBag, Store, FileSpreadsheet, Languages, Sparkles } from 'lucide-react';
 import { CourseModal } from './components/CourseModal';
+import { ChatBot } from './components/ChatBot';
+import { AdminLoginModal } from './components/AdminLoginModal';
 
 import { HomeView } from './views/HomeView';
 import { PortfolioView } from './views/PortfolioView';
 import { EstimatorView } from './views/EstimatorView';
 import { AboutView } from './views/AboutView';
 import { TeachersView } from './views/TeachersView';
+import { TeamView } from './views/TeamView';
 import { BlogView } from './views/BlogView';
 import { ContactView } from './views/ContactView';
+import { AdminView } from './views/AdminView';
 
-import { ServiceItem, PortfolioProject, BlogPost, CourseItem, COURSES } from './data/maatiData';
+import { ServiceItem, PortfolioProject, BlogPost, CourseItem, COURSES, PORTFOLIO_PROJECTS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from './data/maatiData';
+import { AboutData, DEFAULT_ABOUT_DATA } from './data/aboutData';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [currency, setCurrency] = useState<'USD' | 'PKR' | 'GBP'>('PKR');
+
+  // Admin and Device Authorization state
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean>(() => {
+    return localStorage.getItem('weversity_admin_device_authorized') === 'true';
+  });
+
+  // Dynamic Portfolio Projects State (synchronized across website and admin)
+  const [portfolioProjects, setPortfolioProjects] = useState<PortfolioProject[]>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_portfolio_projects');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return PORTFOLIO_PROJECTS;
+  });
+
+  // Dynamic Cost Estimator Configuration (synchronized across website and admin)
+  const [estimatorConfig, setEstimatorConfig] = useState<EstimatorConfig>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_estimator_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.projectTypes) && parsed.projectTypes.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return DEFAULT_ESTIMATOR_CONFIG;
+  });
+
+  // Dynamic About Us Data (synchronized across website and admin)
+  const [aboutData, setAboutData] = useState<AboutData>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_about_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.hero && parsed.milestones && parsed.leadership) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return DEFAULT_ABOUT_DATA;
+  });
+
+  // Dynamic Company Info
+  const [companyInfo, setCompanyInfo] = useState({
+    name: "WeVersity",
+    email: "info@weversity.com",
+    phone: "+92 301 9249721",
+    logo: "/assets/aistudio/image_ec98d7d2.png",
+    address: "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan",
+  });
+
+  const [teachers, setTeachers] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_teachers');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const [sessions, setSessions] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_sessions');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const handleUpdateProjects = (newProjects: PortfolioProject[]) => {
+    setPortfolioProjects(newProjects);
+    try {
+      localStorage.setItem('weversity_portfolio_projects', JSON.stringify(newProjects));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleUpdateTeachers = (newTeachers: any[]) => {
+    setTeachers(newTeachers);
+    try {
+      localStorage.setItem('weversity_teachers', JSON.stringify(newTeachers));
+    } catch {}
+  };
+
+  const handleUpdateSessions = (newSessions: any[]) => {
+    setSessions(newSessions);
+    try {
+      localStorage.setItem('weversity_sessions', JSON.stringify(newSessions));
+    } catch {}
+  };
+
+  const handleUpdateEstimatorConfig = (newConfig: EstimatorConfig) => {
+    setEstimatorConfig(newConfig);
+    try {
+      localStorage.setItem('weversity_estimator_config', JSON.stringify(newConfig));
+    } catch {
+      // ignore
+    }
+    fetch('/api/estimator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newConfig)
+    }).catch(() => {});
+  };
+
+  const handleUpdateAboutData = (newAbout: AboutData) => {
+    setAboutData(newAbout);
+    try {
+      localStorage.setItem('weversity_about_data', JSON.stringify(newAbout));
+      window.dispatchEvent(new CustomEvent('weversity_about_updated', { detail: newAbout }));
+    } catch {
+      // ignore
+    }
+    fetch('/api/about', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newAbout)
+    }).catch(() => {});
+  };
+
+  const handleUpdateCompanyInfo = (newInfo: any) => {
+    setCompanyInfo(newInfo);
+    try {
+      localStorage.setItem('weversity_company_info', JSON.stringify(newInfo));
+    } catch {}
+  };
+
+  // Sync with backend API on mount
+  useEffect(() => {
+    fetch('/api/portfolio')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
+          handleUpdateProjects(data.projects);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/estimator')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.config) {
+          handleUpdateEstimatorConfig(data.config);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/about')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.about) {
+          handleUpdateAboutData(data.about);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/company')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.company) {
+          handleUpdateCompanyInfo(data.company);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/teachers')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) handleUpdateTeachers(data.teachers);
+      })
+      .catch(() => {});
+
+    fetch('/api/sessions')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) handleUpdateSessions(data.sessions);
+      })
+      .catch(() => {});
+  }, []);
 
   // Modals state
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -73,6 +267,44 @@ export default function App() {
     setSelectedArticle(article);
   };
 
+  // Handle Ctrl+Shift+A hotkey & hash for hidden admin portal
+  useEffect(() => {
+    const handleAdminHotKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        setIsAdminLoginOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleAdminHotKey);
+
+    if (window.location.hash === '#admin') {
+      setIsAdminLoginOpen(true);
+    }
+
+    return () => window.removeEventListener('keydown', handleAdminHotKey);
+  }, []);
+
+  if (isAdminOpen) {
+    return (
+      <AdminView
+        onViewWebsite={() => setIsAdminOpen(false)}
+        onLogout={() => {
+          setIsAdminOpen(false);
+          localStorage.removeItem('weversity_admin_auth');
+        }}
+        projects={portfolioProjects}
+        onUpdateProjects={handleUpdateProjects}
+        estimatorConfig={estimatorConfig}
+        onUpdateEstimatorConfig={handleUpdateEstimatorConfig}
+        aboutData={aboutData}
+        onUpdateAboutData={handleUpdateAboutData}
+        onUpdateCompanyInfo={handleUpdateCompanyInfo}
+        onUpdateTeachers={handleUpdateTeachers}
+        onUpdateSessions={handleUpdateSessions}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF9FD] text-gray-900 flex flex-col font-sans selection:bg-purple-200 selection:text-purple-950">
       
@@ -84,6 +316,10 @@ export default function App() {
         onSelectService={handleSelectService}
         currency={currency}
         setCurrency={setCurrency}
+        isDeviceAuthorized={isDeviceAuthorized}
+        onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+        onOpenAdminPanel={() => setIsAdminOpen(true)}
+        companyInfo={companyInfo}
       />
 
       {/* Main Content Area */}
@@ -96,6 +332,11 @@ export default function App() {
             onSelectProject={handleSelectProject}
             onSelectCourse={(course) => setSelectedCourse(course)}
             currency={currency}
+            onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+            onOpenAdminPanel={() => setIsAdminOpen(true)}
+            isDeviceAuthorized={isDeviceAuthorized}
+            projects={portfolioProjects}
+            companyInfo={companyInfo}
           />
         )}
 
@@ -252,6 +493,7 @@ export default function App() {
           <PortfolioView
             onSelectProject={handleSelectProject}
             onOpenQuoteModal={() => handleOpenQuoteModal()}
+            projects={portfolioProjects}
           />
         )}
 
@@ -260,12 +502,21 @@ export default function App() {
             onOpenQuoteModal={handleOpenQuoteModal}
             currency={currency}
             setCurrency={setCurrency}
+            config={estimatorConfig}
           />
         )}
 
         {activeTab === 'about' && (
           <AboutView
             onOpenQuoteModal={() => handleOpenQuoteModal()}
+            setActiveTab={setActiveTab}
+            aboutData={aboutData}
+          />
+        )}
+
+        {activeTab === 'team' && (
+          <TeamView
+            onOpenQuoteModal={handleOpenQuoteModal}
             setActiveTab={setActiveTab}
           />
         )}
@@ -274,11 +525,13 @@ export default function App() {
           <TeachersView
             onSelectCourse={(course) => setSelectedCourse(course)}
             onOpenQuoteModal={handleOpenQuoteModal}
+            teachers={teachers}
+            sessions={sessions}
           />
         )}
 
         {activeTab === 'contact' && (
-          <ContactView currency={currency} />
+          <ContactView currency={currency} companyInfo={companyInfo} />
         )}
       </main>
 
@@ -287,6 +540,8 @@ export default function App() {
         setActiveTab={setActiveTab}
         onSelectService={handleSelectService}
         onOpenQuoteModal={() => handleOpenQuoteModal()}
+        onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+        companyInfo={companyInfo}
       />
 
       {/* Scroll to Top floating button */}
@@ -294,6 +549,7 @@ export default function App() {
 
       {/* Floating WhatsApp trigger with direct connection */}
       <WhatsAppFloatingButton />
+      <ChatBot />
 
       {/* Interactive Modals */}
       <CourseModal
@@ -319,6 +575,19 @@ export default function App() {
         article={selectedArticle}
         onClose={() => setSelectedArticle(null)}
         onOpenQuoteModal={() => handleOpenQuoteModal()}
+      />
+
+      {/* Admin Login Modal (Accessible via Ctrl+Shift+A, Logo Double-Click, or on Authorized PCs) */}
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onLoginSuccess={(remember) => {
+          if (remember) {
+            setIsDeviceAuthorized(true);
+          }
+          setIsAdminOpen(true);
+          setIsAdminLoginOpen(false);
+        }}
       />
 
     </div>

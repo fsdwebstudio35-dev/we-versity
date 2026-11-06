@@ -121,7 +121,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-white p-1 border-2 border-purple-400 shadow-xl shadow-purple-600/30 overflow-hidden flex items-center justify-center">
               <img 
-                src="/assets/aistudio/image_ec98d7d2.png" 
+                src="/assets/aistudio/image_b4867fb4.png" 
                 alt="WeVersity Logo" 
                 className="w-full h-full object-contain"
               />

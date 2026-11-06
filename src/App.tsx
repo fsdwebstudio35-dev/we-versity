@@ -15,6 +15,8 @@ import { Laptop, Code2, Smartphone, ArrowRight, ShoppingBag, Store, FileSpreadsh
 import { CourseModal } from './components/CourseModal';
 import { ChatBot } from './components/ChatBot';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { SiteLoginGate } from './components/SiteLoginGate';
+import { SupabaseConnectModal } from './components/SupabaseConnectModal';
 
 import { HomeView } from './views/HomeView';
 import { PortfolioView } from './views/PortfolioView';
@@ -25,8 +27,10 @@ import { TeamView } from './views/TeamView';
 import { BlogView } from './views/BlogView';
 import { ContactView } from './views/ContactView';
 import { AdminView } from './views/AdminView';
+import { ContestsView } from './views/ContestsView';
+import { StudentsView } from './views/StudentsView';
 
-import { ServiceItem, PortfolioProject, BlogPost, CourseItem, COURSES, PORTFOLIO_PROJECTS, TEACHERS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from './data/maatiData';
+import { ServiceItem, PortfolioProject, BlogPost, CourseItem, Contest, TeamMember, COURSES, PORTFOLIO_PROJECTS, TEACHERS, TEAM_MEMBERS, CONTESTS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from './data/maatiData';
 import { AboutData, DEFAULT_ABOUT_DATA } from './data/aboutData';
 
 export default function App() {
@@ -112,6 +116,30 @@ export default function App() {
     } catch {}
     return [];
   });
+  const [contests, setContests] = useState<Contest[]>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_contests');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return CONTESTS;
+  });
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_team_members');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return TEAM_MEMBERS;
+  });
+  const [students, setStudents] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('weversity_students');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
 
   const handleUpdateProjects = (newProjects: PortfolioProject[]) => {
     setPortfolioProjects(newProjects);
@@ -129,10 +157,31 @@ export default function App() {
     } catch {}
   };
 
+  const handleUpdateStudents = (newStudents: any[]) => {
+    setStudents(newStudents);
+    try {
+      localStorage.setItem('weversity_students', JSON.stringify(newStudents));
+    } catch {}
+  };
+
   const handleUpdateSessions = (newSessions: any[]) => {
     setSessions(newSessions);
     try {
       localStorage.setItem('weversity_sessions', JSON.stringify(newSessions));
+    } catch {}
+  };
+
+  const handleUpdateContests = (newContests: Contest[]) => {
+    setContests(newContests);
+    try {
+      localStorage.setItem('weversity_contests', JSON.stringify(newContests));
+    } catch {}
+  };
+
+  const handleUpdateTeamMembers = (newMembers: TeamMember[]) => {
+    setTeamMembers(newMembers);
+    try {
+      localStorage.setItem('weversity_team_members', JSON.stringify(newMembers));
     } catch {}
   };
 
@@ -177,7 +226,7 @@ export default function App() {
     fetch('/api/portfolio')
       .then(res => res.json())
       .then(data => {
-        if (data.success && Array.isArray(data.projects) && data.projects.length > 0) {
+        if (data.success && Array.isArray(data.projects)) {
           handleUpdateProjects(data.projects);
         }
       })
@@ -213,20 +262,52 @@ export default function App() {
     fetch('/api/teachers')
       .then(res => res.json())
       .then(data => {
-        if (data.success) handleUpdateTeachers(data.teachers);
+        if (data.success && Array.isArray(data.teachers)) {
+          handleUpdateTeachers(data.teachers);
+        }
       })
       .catch(() => {});
 
     fetch('/api/sessions')
       .then(res => res.json())
       .then(data => {
-        if (data.success) handleUpdateSessions(data.sessions);
+        if (data.success && Array.isArray(data.sessions)) {
+          handleUpdateSessions(data.sessions);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/contests')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.contests)) {
+          handleUpdateContests(data.contests);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/team')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.members)) {
+          handleUpdateTeamMembers(data.members);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/students')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.students)) {
+          handleUpdateStudents(data.students);
+        }
       })
       .catch(() => {});
   }, []);
 
   // Modals state
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [quoteServiceId, setQuoteServiceId] = useState<string | undefined>(undefined);
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
   const [selectedProject, setSelectedProject] = useState<PortfolioProject | null>(null);
@@ -243,6 +324,7 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsQuoteModalOpen(false);
+        setIsSupabaseModalOpen(false);
         setSelectedProject(null);
         setSelectedArticle(null);
         setSelectedCourse(null);
@@ -287,6 +369,55 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleAdminHotKey);
   }, []);
 
+  // Site Login Gate state
+  const [isSiteUnlocked, setIsSiteUnlocked] = useState<boolean>(() => {
+    return sessionStorage.getItem('weversity_site_unlocked') === 'true';
+  });
+
+  if (!isSiteUnlocked) {
+    return (
+      <SiteLoginGate
+        onUnlock={(targetTab, userData) => {
+          sessionStorage.setItem('weversity_site_unlocked', 'true');
+          
+          if (userData) {
+            const newUser = {
+              ...userData,
+              id: `${userData.isTeacher ? 'teacher' : 'student'}-${Date.now()}`
+            };
+
+            if (userData.isTeacher) {
+              const updatedTeachers = [newUser, ...teachers];
+              handleUpdateTeachers(updatedTeachers);
+              
+              // Also sync to backend
+              fetch('/api/teachers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUser)
+              }).catch(() => {});
+            } else {
+              const updatedStudents = [newUser, ...students];
+              handleUpdateStudents(updatedStudents);
+              
+              // Also sync to backend
+              fetch('/api/students', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUser)
+              }).catch(() => {});
+            }
+          }
+
+          if (targetTab) {
+            setActiveTab(targetTab);
+          }
+          setIsSiteUnlocked(true);
+        }}
+      />
+    );
+  }
+
   if (isAdminOpen) {
     return (
       <AdminView
@@ -304,6 +435,12 @@ export default function App() {
         onUpdateCompanyInfo={handleUpdateCompanyInfo}
         onUpdateTeachers={handleUpdateTeachers}
         onUpdateSessions={handleUpdateSessions}
+        contests={contests}
+        onUpdateContests={handleUpdateContests}
+        teamMembers={teamMembers}
+        onUpdateTeamMembers={handleUpdateTeamMembers}
+        onUpdateStudents={handleUpdateStudents}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
     );
   }
@@ -340,6 +477,10 @@ export default function App() {
             isDeviceAuthorized={isDeviceAuthorized}
             projects={portfolioProjects}
             companyInfo={companyInfo}
+            onLogout={() => {
+              sessionStorage.removeItem('weversity_site_unlocked');
+              setIsSiteUnlocked(false);
+            }}
           />
         )}
 
@@ -521,6 +662,13 @@ export default function App() {
           <TeamView
             onOpenQuoteModal={handleOpenQuoteModal}
             setActiveTab={setActiveTab}
+            members={teamMembers}
+          />
+        )}
+
+        {activeTab === 'contests' && (
+          <ContestsView
+            contests={contests}
           />
         )}
 
@@ -535,6 +683,13 @@ export default function App() {
 
         {activeTab === 'contact' && (
           <ContactView currency={currency} companyInfo={companyInfo} />
+        )}
+
+        {activeTab === 'students' && (
+          <StudentsView 
+            students={students} 
+            onSelectCourse={(course) => setSelectedCourse(course)}
+          />
         )}
       </main>
 
@@ -591,6 +746,12 @@ export default function App() {
           setIsAdminOpen(true);
           setIsAdminLoginOpen(false);
         }}
+      />
+
+      {/* Supabase Direct Credentials & Connection Modal */}
+      <SupabaseConnectModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
       />
 
     </div>

@@ -179,33 +179,53 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency, companyInfo 
             </div>
           </div>
 
-          {/* London UK Liaison */}
+
+          {/* Social Media Channels */}
           <div className="p-6 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4" /> London Liaison (United Kingdom)
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
-                UK Branch
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-gray-900">{COMPANY_INFO.ukOffice.title}</h4>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                {COMPANY_INFO.ukOffice.address}
-              </p>
-            </div>
-
-            <div className="space-y-2 text-xs pt-1">
-              <div className="flex items-center gap-2 text-gray-700 font-medium">
-                <Phone className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{COMPANY_INFO.ukOffice.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-500">
-                <Clock className="w-3.5 h-3.5 text-indigo-600" />
-                <span>{COMPANY_INFO.ukOffice.hours}</span>
-              </div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-800">
+              Connect on Social Channels
+            </h4>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={COMPANY_INFO.socials.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-100 hover:bg-[#1877F2] hover:text-white transition-all text-xs font-bold shadow-xs"
+              >
+                <span>Facebook</span>
+              </a>
+              <a
+                href={COMPANY_INFO.socials.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-100 hover:bg-[#FF0000] hover:text-white transition-all text-xs font-bold shadow-xs"
+              >
+                <span>YouTube</span>
+              </a>
+              <a
+                href={COMPANY_INFO.socials.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-100 hover:bg-black hover:text-white transition-all text-xs font-bold shadow-xs"
+              >
+                <span>TikTok</span>
+              </a>
+              <a
+                href={COMPANY_INFO.socials.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-100 hover:bg-[#25D366] hover:text-white transition-all text-xs font-bold shadow-xs"
+              >
+                <span>WhatsApp</span>
+              </a>
+              <a
+                href={COMPANY_INFO.socials.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-50 text-purple-900 border border-purple-100 hover:bg-[#0A66C2] hover:text-white transition-all text-xs font-bold shadow-xs"
+              >
+                <span>LinkedIn</span>
+              </a>
             </div>
           </div>
 

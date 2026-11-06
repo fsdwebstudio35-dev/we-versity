@@ -9,6 +9,7 @@ import {
   Linkedin, 
   Facebook, 
   Github, 
+  Youtube,
   ShieldCheck, 
   Award,
   ExternalLink,
@@ -137,30 +138,63 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
 
             {/* Socials matching WeVersity style */}
-            <div className="flex items-center gap-3 pt-3">
-              <a
-                href={COMPANY_INFO.socials.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-all transform hover:scale-110 shadow-sm"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-4 h-4" />
-              </a>
+            {/* Socials including TikTok, YouTube, Facebook, WhatsApp, LinkedIn */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-3">
               <a
                 href={COMPANY_INFO.socials.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#1877F2] hover:text-white transition-all transform hover:scale-110 shadow-sm"
                 aria-label="Facebook"
               >
                 <Facebook className="w-4 h-4" />
               </a>
               <a
+                href={COMPANY_INFO.socials.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#FF0000] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                aria-label="YouTube"
+              >
+                <Youtube className="w-4 h-4" />
+              </a>
+              <a
+                href={COMPANY_INFO.socials.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-black hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                aria-label="TikTok"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 1 1-5.2-1.74 2.89 2.89 0 0 1 2.31-2.22V8.2a6.34 6.34 0 0 0-3.54 1.11 6.35 6.35 0 1 0 10.33 4.82V8.6a8.28 8.28 0 0 0 4.84 1.55V6.71a4.85 4.85 0 0 1-1.52-.02z"/>
+                </svg>
+              </a>
+              <a
+                href={COMPANY_INFO.socials.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#25D366] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                aria-label="WhatsApp"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.555 4.109 1.526 5.834L0 24l6.32-1.658C8.006 23.296 9.94 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.802 0-3.52-.47-5.02-1.294l-.36-.2-.37.973-1.84.483.492-1.795.213-.376A9.957 9.957 0 0 1 2 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z"/>
+                </svg>
+              </a>
+              <a
+                href={COMPANY_INFO.socials.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#0A66C2] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+              <a
                 href={COMPANY_INFO.socials.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-all transform hover:scale-110 shadow-sm"
                 aria-label="GitHub"
               >
                 <Github className="w-4 h-4" />
@@ -169,7 +203,7 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.clutch}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 h-10 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center gap-1.5 text-xs font-semibold text-purple-200 hover:bg-[#6D28D9] hover:text-white transition-all shadow-sm"
+                className="px-3 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center gap-1.5 text-xs font-semibold text-purple-200 hover:bg-[#6D28D9] hover:text-white transition-all shadow-sm"
                 aria-label="Clutch Profile"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-red-400" />
@@ -187,39 +221,86 @@ export const Footer: React.FC<FooterProps> = ({
             </h4>
             <ul className="space-y-2.5 text-xs sm:text-sm text-purple-300/80">
               <li>
-                <button onClick={() => setActiveTab('home')} className="hover:text-white transition-colors">
+                <button onClick={() => setActiveTab('home')} className="hover:text-white transition-colors text-left">
                   Home
                 </button>
               </li>
               <li>
-                <button onClick={() => setActiveTab('about')} className="hover:text-white transition-colors">
+                <button onClick={() => setActiveTab('about')} className="hover:text-white transition-colors text-left">
                   About Us & Story
                 </button>
               </li>
               <li>
-                <button onClick={() => setActiveTab('portfolio')} className="hover:text-white transition-colors">
+                <button onClick={() => setActiveTab('portfolio')} className="hover:text-white transition-colors text-left">
                   Case Studies & Work
                 </button>
               </li>
               <li>
-                <button onClick={() => setActiveTab('team')} className="hover:text-white transition-colors">
+                <button onClick={() => setActiveTab('team')} className="hover:text-white transition-colors text-left">
                   Engineering & Tech Team
                 </button>
               </li>
               <li>
-                <button onClick={() => setActiveTab('estimator')} className="hover:text-white transition-colors text-purple-400 font-medium">
+                <button onClick={() => setActiveTab('estimator')} className="hover:text-white transition-colors text-purple-400 font-medium text-left">
                   Project Cost Calculator
                 </button>
               </li>
               <li>
-                <button onClick={() => setActiveTab('teachers')} className="hover:text-white transition-colors">
+                <button onClick={() => setActiveTab('teachers')} className="hover:text-white transition-colors text-left">
                   Our Expert Teachers
                 </button>
               </li>
               <li>
-                <button onClick={() => setActiveTab('contact')} className="hover:text-white transition-colors">
+                <button onClick={() => setActiveTab('students')} className="hover:text-white transition-colors text-left">
+                  Student Page
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setActiveTab('contact')} className="hover:text-white transition-colors text-left">
                   Contact & Support
                 </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Our Network / Partners */}
+          <div className="lg:col-span-2 space-y-4">
+            <h4 className="text-white font-bold text-sm tracking-wider uppercase">
+              Our Network
+            </h4>
+            <ul className="space-y-2.5 text-xs sm:text-sm text-purple-300/80">
+              <li>
+                <a 
+                  href={COMPANY_INFO.network.weversity} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  WeVersity.org
+                  <ExternalLink className="w-3 h-3 text-purple-400" />
+                </a>
+              </li>
+              <li>
+                <a 
+                  href={COMPANY_INFO.network.ecomhub} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  EcomHub USA
+                  <ExternalLink className="w-3 h-3 text-emerald-400" />
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://mustafa-k4nx.vercel.app/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  Mustafa Portals
+                  <ExternalLink className="w-3 h-3 text-purple-400" />
+                </a>
               </li>
             </ul>
           </div>
@@ -253,27 +334,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <span>{COMPANY_INFO.headquarters.hours}</span>
               </div>
             </div>
-
-            {/* London UK Liaison */}
-            <div className="p-3.5 rounded-2xl bg-[#1A123E] border border-purple-800/50 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-white">
-                <span className="flex items-center gap-1.5 text-purple-300">
-                  <MapPin className="w-3.5 h-3.5" />
-                  London Liaison
-                </span>
-                <span className="text-[10px] text-purple-400 bg-purple-950 px-1.5 py-0.5 rounded border border-purple-800/50">UK Office</span>
-              </div>
-              <p className="text-xs text-purple-200/80 leading-relaxed">
-                {COMPANY_INFO.ukOffice.address}
-              </p>
-              <div className="text-xs text-purple-300 flex items-center gap-1.5 pt-1">
-                <Phone className="w-3 h-3 text-purple-400" />
-                <span>{COMPANY_INFO.ukOffice.phone}</span>
-              </div>
-            </div>
-
           </div>
-
         </div>
 
         {/* Newsletter bar matching WeVersity */}

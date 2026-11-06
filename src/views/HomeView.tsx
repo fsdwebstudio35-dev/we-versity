@@ -32,7 +32,8 @@ import {
   FileSpreadsheet,
   Store,
   Banknote,
-  Lock
+  Lock,
+  LogOut
 } from 'lucide-react';
 import { 
   COMPANY_INFO, 
@@ -58,6 +59,7 @@ interface HomeViewProps {
   isDeviceAuthorized?: boolean;
   projects?: PortfolioProject[];
   companyInfo?: any;
+  onLogout?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -69,7 +71,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenAdminLogin,
   onOpenAdminPanel,
   isDeviceAuthorized,
-  projects
+  projects,
+  onLogout
 }) => {
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [selectedPortfolioCategory, setSelectedPortfolioCategory] = useState<string>('all');
@@ -189,6 +192,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       Backend
                     </span>
+                  </button>
+                )}
+
+                {/* 6. Logout Button (Moved from Navbar) */}
+                {onLogout && (
+                  <button
+                    onClick={onLogout}
+                    className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all flex items-center gap-2 shadow-xs group"
+                    title="Log out and return to portal login"
+                  >
+                    <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>Logout Portal</span>
                   </button>
                 )}
 

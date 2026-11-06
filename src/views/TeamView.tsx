@@ -24,11 +24,13 @@ import { TEAM_MEMBERS, TeamMember, COMPANY_INFO } from '../data/maatiData';
 interface TeamViewProps {
   onOpenQuoteModal: (serviceId?: string) => void;
   setActiveTab?: (tab: string) => void;
+  members?: TeamMember[];
 }
 
 export const TeamView: React.FC<TeamViewProps> = ({
   onOpenQuoteModal,
-  setActiveTab
+  setActiveTab,
+  members
 }) => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,7 +53,9 @@ export const TeamView: React.FC<TeamViewProps> = ({
     { id: 'design', label: 'Creative & Design' },
   ];
 
-  const filteredMembers = TEAM_MEMBERS.filter(member => {
+  const teamData = members && members.length > 0 ? members : TEAM_MEMBERS;
+
+  const filteredMembers = teamData.filter(member => {
     const matchesDept = selectedDepartment === 'all' || member.department === selectedDepartment;
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch = 
@@ -59,7 +63,7 @@ export const TeamView: React.FC<TeamViewProps> = ({
       member.name.toLowerCase().includes(query) ||
       member.role.toLowerCase().includes(query) ||
       member.bio.toLowerCase().includes(query) ||
-      member.techStack.some(tech => tech.toLowerCase().includes(query));
+      (member.techStack || []).some(tech => tech.toLowerCase().includes(query));
     return matchesDept && matchesSearch;
   });
 
@@ -166,7 +170,7 @@ export const TeamView: React.FC<TeamViewProps> = ({
               <div className="flex items-start gap-4">
                 <div className="relative shrink-0">
                   <img
-                    src={member.avatar}
+                    src={member.imageUrl || member.avatar}
                     alt={member.name}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-purple-200 group-hover:border-[#6D28D9] shadow-sm transition-colors duration-300"
                   />

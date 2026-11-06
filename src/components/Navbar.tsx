@@ -12,7 +12,9 @@ import {
   TrendingUp,
   Cpu,
   Puzzle,
-  MessageCircle
+  MessageCircle,
+  LogOut,
+  Database
 } from 'lucide-react';
 import { COMPANY_INFO, SERVICES, ServiceItem } from '../data/maatiData';
 
@@ -26,6 +28,7 @@ interface NavbarProps {
   isDeviceAuthorized: boolean;
   onOpenAdminLogin: () => void;
   onOpenAdminPanel: () => void;
+  onOpenSupabaseModal?: () => void;
   companyInfo?: any;
 }
 
@@ -39,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isDeviceAuthorized,
   onOpenAdminLogin,
   onOpenAdminPanel,
+  onOpenSupabaseModal,
   companyInfo
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -72,6 +76,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'estimator', label: 'Cost Estimator' },
     { id: 'about', label: 'About' },
     { id: 'teachers', label: 'Teachers' },
+    { id: 'students', label: 'Students' },
+    { id: 'contests', label: 'Contests' },
     { id: 'contact', label: 'Contact' },
   ];
 
@@ -88,9 +94,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setActiveTab('home')}
             onDoubleClick={onOpenAdminLogin}
             title="Double-click to open Admin Portal"
-            className="flex items-center gap-3 group text-left focus:outline-none shrink-0"
+            className="flex items-center gap-1.5 xl:gap-2.5 group text-left focus:outline-none shrink-0"
           >
-            <div className="w-12 h-12 rounded-full border-2 border-purple-200 bg-white flex items-center justify-center shadow-xs group-hover:border-[#6D28D9] transition-colors overflow-hidden animate-float">
+            <div className="w-9 h-9 xl:w-11 xl:h-11 rounded-full border-2 border-purple-200 bg-white flex items-center justify-center shadow-xs group-hover:border-[#6D28D9] transition-colors overflow-hidden animate-float">
               <img 
                 src={brandLogo} 
                 alt={`${brandName} Logo`} 
@@ -98,69 +104,47 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-display font-black text-lg xl:text-xl tracking-tight text-[#18113C] group-hover:text-[#6D28D9] transition-colors">
+              <div className="flex items-center gap-1.5">
+                <span className="font-display font-black text-sm xl:text-lg tracking-tight text-[#18113C] group-hover:text-[#6D28D9] transition-colors">
                   {brandName.toUpperCase()}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-500 font-medium tracking-wide">
+              <p className="text-[9px] xl:text-[10px] text-gray-500 font-medium tracking-wide">
                 Learn To Earn • Digital Agency
               </p>
             </div>
           </button>
 
           {/* Desktop Nav Items */}
-          <nav className="hidden lg:flex items-center gap-3 xl:gap-8 2xl:gap-10">
+          <nav className="hidden lg:flex items-center gap-2 xl:gap-4 2xl:gap-6">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
-              
-
-
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`text-[11px] xl:text-sm font-semibold transition-all py-1.5 whitespace-nowrap ${
+                  className={`text-[10px] xl:text-[14px] font-bold transition-all py-1 whitespace-nowrap px-2 xl:px-3 ${
                     isActive
                       ? 'text-[#6D28D9] border-b-2 border-[#6D28D9]'
-                      : `text-gray-700 hover:text-[#6D28D9] ${item.id === 'about' ? 'hover:bg-purple-50/50 rounded-lg px-2' : ''}`
+                      : 'text-gray-700 hover:text-[#6D28D9]'
                   }`}
                 >
                   {item.label}
                 </button>
               );
             })}
+            
+            
           </nav>
 
           {/* Right Action buttons matching screenshot */}
-          <div className="hidden lg:flex items-center gap-2 xl:gap-3">
+          <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5">
             {/* Currency badge - PKR only */}
-            <div className="flex items-center bg-purple-50/80 rounded-full p-0.5 border border-purple-150 text-[10px] xl:text-[11px] shrink-0">
-              <span className="px-1.5 xl:px-2.5 py-0.5 rounded-full font-bold bg-[#6D28D9] text-white shadow-xs">
+            <div className="flex items-center bg-purple-50/80 rounded-full p-0.5 border border-purple-150 text-[9px] xl:text-[11px] shrink-0">
+              <span className="px-1 xl:px-2 py-0.5 rounded-full font-bold bg-[#6D28D9] text-white shadow-xs">
                 PKR
               </span>
             </div>
-
-            {/* WhatsApp Chat Button - pill with light green bg */}
-            <a
-              href={`https://wa.me/${COMPANY_INFO.whatsappNumber}?text=Hi%20Maati%20Tech%20team,%20I'd%20like%20to%20discuss%20a%20new%20project.`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 xl:px-4 py-2.5 rounded-full font-bold text-[10px] xl:text-xs text-emerald-800 bg-[#E8FAF0] hover:bg-[#D7F5E3] border border-emerald-200/90 transition-all flex items-center gap-1.5 xl:gap-2 shadow-xs shrink-0"
-            >
-              <MessageCircle className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-emerald-600 fill-emerald-600" />
-              <span className="hidden xl:inline">WhatsApp Chat</span>
-              <span className="xl:hidden">WhatsApp</span>
-            </a>
-
-            {/* Get Free Quote Button - solid purple pill */}
-            <button
-              onClick={() => onOpenQuoteModal()}
-              className="px-3 xl:px-5 py-2.5 rounded-full font-bold text-[10px] xl:text-xs tracking-wide text-white bg-[#6D28D9] hover:bg-[#5B21B6] shadow-md shadow-purple-600/25 transition-all flex items-center gap-1 xl:gap-1.5 group shrink-0 whitespace-nowrap"
-            >
-              <span>Get Free Quote</span>
-              <ArrowRight className="w-3 h-3 xl:w-3.5 xl:h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </button>
           </div>
 
           {/* Mobile hamburger */}
@@ -199,26 +183,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             ))}
 
-            <div className="pt-4 mt-2 border-t border-purple-100 flex flex-col gap-2.5">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenQuoteModal();
-                }}
-                className="w-full py-3 rounded-full font-bold text-xs tracking-wide text-white bg-[#6D28D9] hover:bg-[#5B21B6] shadow-md shadow-purple-600/25 flex items-center justify-center gap-2"
-              >
-                <span>Get Free Quote</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <a
-                href={`https://wa.me/${COMPANY_INFO.whatsappNumber}?text=Hi%20Maati%20Tech%20team,%20I'd%20like%20to%20discuss%20a%20new%20project.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 rounded-full text-center text-xs font-bold text-emerald-800 bg-[#E8FAF0] border border-emerald-200"
-              >
-                WhatsApp Chat: {COMPANY_INFO.phone}
-              </a>
+            <div className="pt-4 mt-2 border-t border-purple-100 flex flex-col gap-2.5 text-center">
+              <p className="text-[10px] text-gray-400 font-medium tracking-widest uppercase py-2">
+                Digital Excellence
+              </p>
             </div>
           </div>
         </div>

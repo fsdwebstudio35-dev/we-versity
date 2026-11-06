@@ -92,8 +92,15 @@ export const COMPANY_INFO = {
   socials: {
     linkedin: "https://www.linkedin.com/company/weversity",
     facebook: "https://www.facebook.com/weversity",
+    youtube: "https://www.youtube.com/@weversity",
+    tiktok: "https://www.tiktok.com/@weversity",
+    whatsapp: "https://wa.me/923019249721",
     github: "https://github.com/weversity",
     clutch: "https://clutch.co/profile/maati-technologies"
+  },
+  network: {
+    weversity: "https://www.weversity.org",
+    ecomhub: "https://ecomhubusa.com"
   }
 };
 
@@ -958,8 +965,34 @@ export interface TeamMember {
     linkedin?: string;
     github?: string;
     portfolio?: string;
+    profileLink?: string;
   };
+  imageUrl?: string;
+  profileLink?: string;
 }
+
+export interface Contest {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  prize: string;
+  status: 'Upcoming' | 'Live' | 'Ended';
+  image: string;
+  link?: string;
+}
+
+export const CONTESTS: Contest[] = [
+  {
+    id: "hackathon-2026",
+    title: "WeVersity Full-Stack Hackathon 2026",
+    description: "Build a production-ready SaaS application in 48 hours using React, Laravel, and Gemini AI. Compete for the ultimate engineering title.",
+    date: "Dec 10, 2026",
+    prize: "$1,500 Cash + Internship",
+    status: "Upcoming",
+    image: "/assets/aistudio/image_57173fca.png"
+  }
+];
 
 export const TEAM_MEMBERS: TeamMember[] = [
   {

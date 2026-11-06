@@ -51,7 +51,10 @@ import {
   UserCheck,
   Code2,
   Cpu,
-  Save
+  Save,
+  Trophy,
+  Database,
+  Server
 } from 'lucide-react';
 import { 
   COURSES, 
@@ -60,6 +63,8 @@ import {
   TEAM_MEMBERS, 
   CourseItem, 
   PortfolioProject,
+  Contest,
+  TeamMember,
   EstimatorConfig,
   DEFAULT_ESTIMATOR_CONFIG,
   EstimatorProjectType,
@@ -89,6 +94,13 @@ interface AdminViewProps {
   onUpdateCompanyInfo?: (info: any) => void;
   onUpdateTeachers?: (teachers: any[]) => void;
   onUpdateSessions?: (sessions: any[]) => void;
+  contests?: Contest[];
+  onUpdateContests?: (contests: Contest[]) => void;
+  teamMembers?: TeamMember[];
+  onUpdateTeamMembers?: (members: TeamMember[]) => void;
+  students?: any[];
+  onUpdateStudents?: (students: any[]) => void;
+  onOpenSupabaseModal?: () => void;
 }
 
 export const AdminView: React.FC<AdminViewProps> = ({
@@ -102,9 +114,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onUpdateAboutData,
   onUpdateCompanyInfo,
   onUpdateTeachers,
-  onUpdateSessions
+  onUpdateSessions,
+  contests,
+  onUpdateContests,
+  teamMembers,
+  onUpdateTeamMembers,
+  students,
+  onUpdateStudents,
+  onOpenSupabaseModal
 }) => {
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'courses' | 'portfolio' | 'estimator' | 'about' | 'teachers' | 'live_sessions' | 'contact' | 'messages' | 'settings'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'courses' | 'portfolio' | 'estimator' | 'about' | 'teachers' | 'students' | 'live_sessions' | 'contests' | 'team_pages' | 'contact' | 'messages' | 'settings' | 'database'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('Last 30 Days');
@@ -119,10 +138,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
     role: '',
     specialization: '',
     category: 'web' as any,
+    categoryLabel: 'Web Development',
     experience: '',
     studentsCount: '',
     bio: '',
-    avatar: '/assets/aistudio/image_f804651e.png'
+    avatar: '/assets/aistudio/image_f804651e.png',
+    rating: 5.0,
+    reviewsCount: 0,
+    primaryCourse: '',
+    skills: '' as any, // comma separated in form
+    highlights: '' as any, // comma separated in form
+    socials: { linkedin: '', github: '' }
   });
 
   // Live Sessions CMS State
@@ -138,7 +164,59 @@ export const AdminView: React.FC<AdminViewProps> = ({
     duration: '',
     status: 'Upcoming',
     link: '',
-    thumbnail: '/assets/aistudio/image_85a3982c.png'
+    thumbnail: '/assets/aistudio/image_85a3982c.png',
+    startTime: ''
+  });
+
+  // Contests CMS State
+  const [contestsList, setContestsList] = useState<Contest[]>(contests || []);
+  const [isContestModalOpen, setIsContestModalOpen] = useState(false);
+  const [editingContestId, setEditingContestId] = useState<string | null>(null);
+  const [contestForm, setContestForm] = useState<Contest>({
+    id: '',
+    title: '',
+    description: '',
+    date: '',
+    prize: '',
+    status: 'Upcoming',
+    image: '/assets/aistudio/hero_illustration_full.png',
+    link: ''
+  });
+
+  // Team CMS State
+  const [teamList, setTeamList] = useState<TeamMember[]>(teamMembers || []);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [editingTeamMemberId, setEditingTeamMemberId] = useState<string | null>(null);
+  const [teamForm, setTeamForm] = useState<TeamMember>({
+    id: '',
+    name: '',
+    role: '',
+    department: 'engineering',
+    departmentLabel: 'Full-Stack Engineering',
+    location: 'Lahore, Pakistan',
+    experience: '',
+    imageUrl: '',
+    profileLink: '',
+    techStack: [],
+    socials: {},
+    avatar: '/assets/aistudio/image_f804651e.png',
+    bio: '',
+    keyAchievement: ''
+  });
+
+  // Students CMS State
+  const [studentsList, setStudentsList] = useState<any[]>(students || []);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [studentForm, setStudentForm] = useState({
+    id: '',
+    name: '',
+    email: '',
+    phoneNumber: '',
+    country: 'Pakistan',
+    primaryCourse: '',
+    bio: '',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80'
   });
 
   // Company Info State
@@ -148,6 +226,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
     phone: '+92 301 9249721',
     logo: '/assets/aistudio/image_ec98d7d2.png',
     address: 'Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan',
+  });
+
+  // Supabase Config State
+  const [supabaseConfig, setSupabaseConfig] = useState({
+    url: '',
+    anonKey: '',
+    status: 'Disconnected'
   });
 
   useEffect(() => {
@@ -160,11 +245,151 @@ export const AdminView: React.FC<AdminViewProps> = ({
     fetch('/api/company').then(res => res.json()).then(data => {
       if (data.success) setCompanyInfo(data.company);
     });
-  }, []);
+    fetch('/api/supabase').then(res => res.json()).then(data => {
+      if (data.success) setSupabaseConfig(data.config);
+    });
+    if (contests) setContestsList(contests);
+    if (teamMembers) setTeamList(teamMembers);
+  }, [contests, teamMembers]);
+
+  const [supabaseTesting, setSupabaseTesting] = useState(false);
+  const [supabaseTestMsg, setSupabaseTestMsg] = useState<string | null>(null);
+
+  const handleSaveSupabase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSupabaseTesting(true);
+    setSupabaseTestMsg(null);
+    try {
+      const res = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supabaseConfig)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSupabaseConfig(data.config);
+        setActionSuccess('Supabase configuration saved & website connected!');
+        setTimeout(() => setActionSuccess(null), 3000);
+      }
+    } catch {
+      setActionSuccess('Supabase configuration updated locally.');
+    } finally {
+      setSupabaseTesting(false);
+    }
+  };
+
+  const handleTestSupabase = async () => {
+    if (!supabaseConfig.url || !supabaseConfig.anonKey) {
+      setSupabaseTestMsg('Please enter both Supabase URL and Anon Key.');
+      return;
+    }
+    setSupabaseTesting(true);
+    setSupabaseTestMsg(null);
+    try {
+      const res = await fetch('/api/supabase/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: supabaseConfig.url, anonKey: supabaseConfig.anonKey })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSupabaseTestMsg(data.status || 'Connection Successful!');
+      } else {
+        setSupabaseTestMsg(data.status || data.message || 'Connection failed.');
+      }
+    } catch (err: any) {
+      setSupabaseTestMsg('Network error while testing connection.');
+    } finally {
+      setSupabaseTesting(false);
+    }
+  };
+
+  const handleSaveContest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const updatedContest = { ...contestForm, id: editingContestId || 'contest-' + Date.now() };
+    
+    const res = await fetch('/api/contests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedContest)
+    });
+    const data = await res.json();
+    if (data.success) {
+      setContestsList(data.contests);
+      if (onUpdateContests) onUpdateContests(data.contests);
+      setIsContestModalOpen(false);
+      setActionSuccess(`Contest "${updatedContest.title}" saved!`);
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
+  const handleDeleteContest = async (id: string) => {
+    const res = await fetch(`/api/contests/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      setContestsList(data.contests);
+      if (onUpdateContests) onUpdateContests(data.contests);
+      setActionSuccess('Contest removed!');
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
+  const handleSaveTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const updatedMember = { 
+      ...teamForm, 
+      id: editingTeamMemberId || 'member-' + Date.now(),
+      socials: {
+        ...teamForm.socials,
+        linkedin: teamForm.profileLink || teamForm.socials.linkedin
+      }
+    };
+    
+    const res = await fetch('/api/team', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedMember)
+    });
+    const data = await res.json();
+    if (data.success) {
+      setTeamList(data.members);
+      if (onUpdateTeamMembers) onUpdateTeamMembers(data.members);
+      setIsTeamModalOpen(false);
+      setActionSuccess(`Team member ${updatedMember.name} saved!`);
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
+  const handleDeleteTeamMember = async (id: string) => {
+    const res = await fetch(`/api/team/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      setTeamList(data.members);
+      if (onUpdateTeamMembers) onUpdateTeamMembers(data.members);
+      setActionSuccess('Team member removed!');
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
 
   const handleSaveTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedTeacher = { ...teacherForm, id: editingTeacherId || 'teacher-' + Date.now() };
+    const skillsArray = typeof teacherForm.skills === 'string' 
+      ? teacherForm.skills.split(',').map(s => s.trim()).filter(Boolean)
+      : teacherForm.skills;
+    
+    const highlightsArray = typeof teacherForm.highlights === 'string' 
+      ? teacherForm.highlights.split(',').map(s => s.trim()).filter(Boolean)
+      : teacherForm.highlights;
+
+    const updatedTeacher = { 
+      ...teacherForm, 
+      id: editingTeacherId || 'teacher-' + Date.now(),
+      skills: skillsArray,
+      highlights: highlightsArray,
+      rating: Number(teacherForm.rating) || 5.0,
+      reviewsCount: Number(teacherForm.reviewsCount) || 0
+    };
+
     const res = await fetch('/api/teachers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -187,6 +412,39 @@ export const AdminView: React.FC<AdminViewProps> = ({
       setTeachersList(data.teachers);
       if (onUpdateTeachers) onUpdateTeachers(data.teachers);
       setActionSuccess('Teacher removed!');
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
+  const handleSaveStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const updatedStudent = { 
+      ...studentForm, 
+      id: editingStudentId || 'student-' + Date.now() 
+    };
+
+    const res = await fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedStudent)
+    });
+    const data = await res.json();
+    if (data.success) {
+      setStudentsList(data.students);
+      if (onUpdateStudents) onUpdateStudents(data.students);
+      setIsStudentModalOpen(false);
+      setActionSuccess(`Student ${updatedStudent.name} saved!`);
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      setStudentsList(data.students);
+      if (onUpdateStudents) onUpdateStudents(data.students);
+      setActionSuccess('Student removed!');
       setTimeout(() => setActionSuccess(null), 3000);
     }
   };
@@ -243,7 +501,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [portfolioCat, setPortfolioCat] = useState<string>('all');
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, name: string, type: 'project' | 'teacher' | 'student' | 'session' | 'contest' | 'team' } | null>(null);
 
   // Sync with prop updates
   useEffect(() => {
@@ -479,7 +737,6 @@ export const AdminView: React.FC<AdminViewProps> = ({
     } catch {
       // safe fallback
     }
-    setDeleteConfirmId(null);
     setActionSuccess(`Project "${target?.title || 'item'}" removed successfully from website.`);
     setTimeout(() => setActionSuccess(null), 4000);
   };
@@ -884,6 +1141,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
     icon: 'Code2'
   });
 
+  const handleOpenCreatePrinciple = () => {
+    setEditingPrincipleId(null);
+    setPrincipleForm({
+      id: 'principle-' + Date.now(),
+      title: '',
+      desc: '',
+      icon: 'Code2'
+    });
+    setPrincipleModalOpen(true);
+  };
+
   const handleOpenEditPrinciple = (item: PrincipleItem) => {
     setEditingPrincipleId(item.id);
     setPrincipleForm(item);
@@ -892,8 +1160,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const handleSavePrinciple = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPrincipleId) return;
-    const updatedPrinciples = aboutState.principles.map(p => p.id === editingPrincipleId ? principleForm : p);
+    let updatedPrinciples: PrincipleItem[];
+    if (editingPrincipleId) {
+      updatedPrinciples = aboutState.principles.map(p => p.id === editingPrincipleId ? principleForm : p);
+    } else {
+      updatedPrinciples = [...aboutState.principles, { ...principleForm, id: 'principle-' + Date.now() }];
+    }
     const updated = { ...aboutState, principles: updatedPrinciples };
     saveAboutData(updated, `Engineering Principle "${principleForm.title}" saved! Live on website.`);
     setPrincipleModalOpen(false);
@@ -1041,86 +1313,83 @@ export const AdminView: React.FC<AdminViewProps> = ({
     { id: 'estimator', label: 'Cost Estimator', icon: Calculator },
     { id: 'about', label: 'About Us', icon: Building2 },
     { id: 'teachers', label: 'Teachers', icon: GraduationCap },
+    { id: 'students', label: 'Students', icon: Users },
     { id: 'live_sessions', label: 'Live Sessions', icon: Video },
+    { id: 'contests', label: 'Contests', icon: Trophy },
+    { id: 'team_pages', label: 'Team Pages', icon: Users },
     { id: 'contact', label: 'Contact', icon: Mail },
     { id: 'messages', label: 'Messages', icon: MessageSquare, badge: messages.filter(m => m.unread).length.toString() },
     { id: 'settings', label: 'Website Settings', icon: Settings },
+    { id: 'database', label: 'Database (Supabase)', icon: Database },
   ];
 
   return (
-    <div className="min-h-screen bg-[#0E0A1E] text-white flex flex-col font-sans selection:bg-purple-600 selection:text-white">
+    <div className="min-h-screen bg-[#F8F7FF] text-[#18113C] flex flex-col font-sans selection:bg-purple-600 selection:text-[#18113C]">
       
-      {/* Top Navbar matching screenshot */}
-      <header className="sticky top-0 z-40 bg-[#120D28]/95 backdrop-blur-md border-b border-purple-900/40 px-4 sm:px-6 lg:px-8 py-3.5">
+      {/* Top Navbar matching website theme */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-purple-100 px-4 sm:px-6 lg:px-8 py-3.5 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           
           {/* Brand Logo */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-lg shadow-purple-900/40 border border-purple-400/40 overflow-hidden">
-              <img 
-                src="/assets/aistudio/image_ec98d7d2.png" 
-                alt="WeVersity Logo" 
-                className="w-full h-full object-contain"
-              />
+            <div className="w-10 h-10 rounded-xl bg-[#6D28D9] p-0.5 flex items-center justify-center shadow-md border border-purple-200 overflow-hidden">
+              <div className="w-full h-full bg-white rounded-[9px] flex items-center justify-center overflow-hidden">
+                <img 
+                  src="/assets/aistudio/image_b4867fb4.png" 
+                  alt="WeVersity Logo" 
+                  className="w-full h-full object-contain p-1"
+                />
+              </div>
             </div>
             <div>
-              <div className="font-display font-black text-base tracking-wide text-white flex items-center gap-2">
+              <div className="font-display font-black text-base tracking-wide text-[#18113C] flex items-center gap-2">
                 WEVERSITY
               </div>
-              <div className="text-[10px] text-purple-300 uppercase tracking-wider font-semibold">
-                Admin Panel
+              <div className="text-[10px] text-[#6D28D9] uppercase tracking-wider font-extrabold">
+                Admin Portal
               </div>
             </div>
           </div>
 
-          {/* Search bar (Ctrl + K) */}
+          {/* Search bar */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
             <div className="relative w-full">
-              <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search anything... (Ctrl + K)"
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#1A1338] border border-purple-800/50 text-xs text-purple-100 placeholder-purple-400/60 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
+                placeholder="Search records..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-purple-50 border border-purple-100 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all"
               />
             </div>
           </div>
 
-          {/* Right Header items: Notifications, Profile, View Website */}
+          {/* Right Header items */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">
             
             {/* Notification Bell */}
             <div className="relative">
               <button 
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="p-2.5 rounded-xl bg-[#1A1338] border border-purple-800/50 text-purple-200 hover:text-white hover:border-purple-600 transition-colors relative"
-                aria-label="View notifications"
+                className="p-2.5 rounded-xl bg-purple-50 border border-purple-100 text-gray-600 hover:text-[#6D28D9] hover:bg-purple-100 transition-colors relative shadow-sm"
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[#18113C] text-[10px] font-bold flex items-center justify-center border-2 border-white">
                   3
                 </span>
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-[#1A1338] border border-purple-800/70 rounded-2xl p-4 shadow-2xl z-50 space-y-3">
-                  <div className="flex items-center justify-between border-b border-purple-900/60 pb-2">
-                    <span className="text-xs font-bold text-white">Notifications</span>
-                    <span className="text-[10px] text-purple-400">3 new</span>
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-purple-100 rounded-2xl p-4 shadow-2xl z-50 space-y-3">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="text-xs font-bold text-[#18113C]">Notifications</span>
+                    <span className="text-[10px] text-[#6D28D9] font-bold cursor-pointer hover:underline">Mark all read</span>
                   </div>
                   <div className="space-y-2 text-xs">
-                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40">
-                      <p className="font-semibold text-purple-200">New admission request</p>
-                      <p className="text-[10px] text-purple-400">Ahmed Khan applied for Claude AI Mastery · 2m ago</p>
-                    </div>
-                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40">
-                      <p className="font-semibold text-purple-200">Quote inquiry submitted</p>
-                      <p className="text-[10px] text-purple-400">Zain Ali requested Custom SaaS quote · 12m ago</p>
-                    </div>
-                    <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-800/40">
-                      <p className="font-semibold text-purple-200">Server Status</p>
-                      <p className="text-[10px] text-emerald-400">All systems 100% operational in Lahore HQ</p>
+                    <div className="p-2 rounded-xl bg-purple-50 border border-purple-50">
+                      <p className="font-bold text-[#18113C]">New enrollment</p>
+                      <p className="text-[10px] text-gray-500">Ahmed Khan enrolled in Claude AI Mastery</p>
                     </div>
                   </div>
                 </div>
@@ -1128,38 +1397,49 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
 
             {/* Profile Pill */}
-            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#1A1338] border border-purple-800/50">
-              <img 
-                src="/assets/aistudio/image_f804651e.png" 
-                alt="Ahtasham Javed"
-                className="w-8 h-8 rounded-full object-cover border border-purple-400/40"
-              />
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-100">
+              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-0.5 border border-purple-200 overflow-hidden shrink-0 shadow-sm">
+                <img 
+                  src="/assets/aistudio/image_b4867fb4.png" 
+                  alt="Admin"
+                  className="w-full h-full object-contain"
+                />
+              </div>
               <div className="hidden sm:block text-left">
-                <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  Ahtasham Javed
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="text-xs font-bold text-[#18113C] flex items-center gap-1.5">
+                  Admin
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
-                <div className="text-[10px] text-purple-300 font-medium">Administrator</div>
+                <div className="text-[10px] text-gray-500 font-medium">System Manager</div>
               </div>
             </div>
 
-            {/* View Website Button (Return to Front-End) */}
+            {onOpenSupabaseModal && (
+              <button
+                onClick={onOpenSupabaseModal}
+                className="hidden sm:flex px-4 py-2 rounded-xl font-bold text-xs text-[#6D28D9] bg-purple-50 border border-purple-200 hover:bg-purple-100 transition-all items-center gap-1.5 shadow-sm"
+              >
+                <Database className="w-4 h-4" />
+                <span>Supabase</span>
+              </button>
+            )}
+
             <button
               onClick={onViewWebsite}
-              className="px-4 py-2 rounded-xl font-bold text-xs text-white bg-[#6D28D9] hover:bg-[#5B21B6] transition-all flex items-center gap-1.5 shadow-md shadow-purple-900/50 group"
+              className="px-4 py-2 rounded-xl font-bold text-xs text-white bg-[#6D28D9] hover:bg-[#5B21B6] transition-all flex items-center gap-1.5 shadow-md shadow-purple-200 group"
             >
-              <span>View Website</span>
+              <span>View Site</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Body with Sidebar + Main Content */}
+      {/* Main Body */}
       <div className="flex-1 flex overflow-hidden">
         
         {/* Left Sidebar */}
-        <aside className="w-64 bg-[#120D28] border-r border-purple-900/40 flex flex-col justify-between p-4 shrink-0 overflow-y-auto">
+        <aside className="w-64 bg-white border-r border-purple-100 flex flex-col justify-between p-4 shrink-0 overflow-y-auto">
           <div className="space-y-6">
             
             {/* Nav Menu */}
@@ -1171,19 +1451,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <button
                     key={item.id}
                     onClick={() => setCurrentTab(item.id as any)}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                       isActive 
-                        ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/40' 
-                        : 'text-purple-300/80 hover:bg-purple-950/60 hover:text-white'
+                        ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200' 
+                        : 'text-gray-600 hover:bg-purple-50 hover:text-[#6D28D9]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4" />
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#18113C]' : 'text-gray-400'}`} />
                       <span>{item.label}</span>
                     </div>
                     {item.badge && (
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        isActive ? 'bg-white text-[#6D28D9]' : 'bg-rose-500 text-white'
+                        isActive ? 'bg-white text-[#6D28D9]' : 'bg-rose-500 text-[#18113C]'
                       }`}>
                         {item.badge}
                       </span>
@@ -1192,32 +1472,30 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 );
               })}
 
-              {/* Logout button */}
               <button
                 onClick={onLogout}
-                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-300 hover:bg-rose-950/40 transition-colors"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
               >
-                <LogOut className="w-4 h-4 text-rose-400" />
+                <LogOut className="w-4 h-4" />
                 <span>Logout</span>
               </button>
             </nav>
           </div>
 
-          {/* Bottom Rocket Card matching screenshot */}
-          <div className="mt-8 pt-4 border-t border-purple-900/40">
-            <div className="p-4 rounded-2xl bg-gradient-to-b from-[#1C1340] to-[#140D30] border border-purple-800/50 relative overflow-hidden text-center space-y-2 group">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-tr from-[#6D28D9] to-pink-500 flex items-center justify-center shadow-lg shadow-purple-800/40 group-hover:scale-110 transition-transform">
-                <Sparkles className="w-6 h-6 text-white" />
+          <div className="mt-8 pt-4 border-t border-purple-50">
+            <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 relative overflow-hidden text-center space-y-2 group">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-white p-1 flex items-center justify-center shadow-md border border-purple-200 group-hover:scale-110 transition-transform overflow-hidden">
+                <img src="/assets/aistudio/image_b4867fb4.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <div className="font-display font-extrabold text-sm text-white tracking-wide">
+              <div className="font-display font-extrabold text-sm text-[#18113C] tracking-wide">
                 Build. Manage. Grow.
               </div>
-              <div className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+              <div className="text-[10px] font-black text-[#6D28D9] uppercase tracking-widest">
                 WEVERSITY
               </div>
             </div>
-            <div className="text-[10px] text-purple-400/60 text-center mt-3">
-              © 2026 WEVERSITY All Rights Reserved
+            <div className="text-[10px] text-gray-400 text-center mt-3 font-medium">
+              © 2026 WEVERSITY Portal
             </div>
           </div>
         </aside>
@@ -1226,12 +1504,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
           
           {actionSuccess && (
-            <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-700/60 text-emerald-200 text-xs flex items-center justify-between">
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-700/60 text-emerald-200 text-xs flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 {actionSuccess}
               </span>
-              <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-white">
+              <button onClick={() => setActionSuccess(null)} className="text-emerald-600 hover:text-[#18113C]">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1243,11 +1521,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
               
               {/* Header Greeting */}
               <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-display font-black text-[#18113C] tracking-tight flex items-center gap-2">
                   <span>Welcome Back, Ahtasham!</span>
                   <span>👋</span>
                 </h1>
-                <p className="text-xs sm:text-sm text-purple-300/80 mt-1">
+                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">
                   Manage your website content from here
                 </p>
               </div>
@@ -1256,17 +1534,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 
                 {/* Total Visitors */}
-                <div className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 relative overflow-hidden flex flex-col justify-between hover:border-purple-600 transition-colors">
+                <div className="p-5 rounded-2xl bg-white border border-purple-100 relative overflow-hidden flex flex-col justify-between hover:border-purple-300 transition-colors shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-xs text-purple-300 font-medium block">Total Visitors</span>
-                      <span className="text-2xl font-display font-black text-white mt-1 block">125.8K</span>
-                      <span className="text-[11px] text-purple-300 font-semibold flex items-center gap-1 mt-1">
-                        <TrendingUp className="w-3 h-3 text-purple-400" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Visitors</span>
+                      <span className="text-2xl font-display font-black text-[#18113C] mt-1 block">125.8K</span>
+                      <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
+                        <TrendingUp className="w-3 h-3" />
                         ↑ 12.5%
                       </span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-purple-900/60 border border-purple-700/50 flex items-center justify-center text-purple-300">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#6D28D9]">
                       <Users className="w-5 h-5" />
                     </div>
                   </div>
@@ -1279,17 +1557,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
 
                 {/* Total Courses */}
-                <div className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 relative overflow-hidden flex flex-col justify-between hover:border-blue-600 transition-colors">
+                <div className="p-5 rounded-2xl bg-white border border-purple-100 relative overflow-hidden flex flex-col justify-between hover:border-blue-300 transition-colors shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-xs text-purple-300 font-medium block">Total Courses</span>
-                      <span className="text-2xl font-display font-black text-white mt-1 block">24</span>
-                      <span className="text-[11px] text-blue-400 font-semibold flex items-center gap-1 mt-1">
-                        <TrendingUp className="w-3 h-3 text-blue-400" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Courses</span>
+                      <span className="text-2xl font-display font-black text-[#18113C] mt-1 block">24</span>
+                      <span className="text-[11px] text-blue-600 font-bold flex items-center gap-1 mt-1">
+                        <TrendingUp className="w-3 h-3" />
                         ↑ 8.2%
                       </span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-950/60 border border-blue-700/50 flex items-center justify-center text-blue-300">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                       <BookOpen className="w-5 h-5" />
                     </div>
                   </div>
@@ -1302,17 +1580,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
 
                 {/* Total Projects */}
-                <div className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 relative overflow-hidden flex flex-col justify-between hover:border-emerald-600 transition-colors">
+                <div className="p-5 rounded-2xl bg-white border border-purple-100 relative overflow-hidden flex flex-col justify-between hover:border-emerald-300 transition-colors shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-xs text-purple-300 font-medium block">Total Projects</span>
-                      <span className="text-2xl font-display font-black text-white mt-1 block">48</span>
-                      <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1 mt-1">
-                        <TrendingUp className="w-3 h-3 text-emerald-400" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Projects</span>
+                      <span className="text-2xl font-display font-black text-[#18113C] mt-1 block">48</span>
+                      <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
+                        <TrendingUp className="w-3 h-3" />
                         ↑ 15.7%
                       </span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-700/50 flex items-center justify-center text-emerald-300">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                       <FolderGit2 className="w-5 h-5" />
                     </div>
                   </div>
@@ -1325,17 +1603,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
 
                 {/* New Messages */}
-                <div className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 relative overflow-hidden flex flex-col justify-between hover:border-amber-600 transition-colors">
+                <div className="p-5 rounded-2xl bg-white border border-purple-100 relative overflow-hidden flex flex-col justify-between hover:border-amber-300 transition-colors shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-xs text-purple-300 font-medium block">New Messages</span>
-                      <span className="text-2xl font-display font-black text-white mt-1 block">37</span>
-                      <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1 mt-1">
-                        <TrendingUp className="w-3 h-3 text-amber-400" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">New Messages</span>
+                      <span className="text-2xl font-display font-black text-[#18113C] mt-1 block">37</span>
+                      <span className="text-[11px] text-amber-600 font-bold flex items-center gap-1 mt-1">
+                        <TrendingUp className="w-3 h-3" />
                         ↑ 22.1%
                       </span>
                     </div>
-                    <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-700/50 flex items-center justify-center text-amber-300">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
                       <Mail className="w-5 h-5" />
                     </div>
                   </div>
@@ -1356,18 +1634,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="lg:col-span-7 space-y-6">
                   
                   {/* Website Analytics Card */}
-                  <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
+                  <div className="p-6 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-purple-900/60 flex items-center justify-center text-purple-300">
+                        <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#6D28D9]">
                           <TrendingUp className="w-4 h-4" />
                         </div>
-                        <h2 className="text-sm font-bold text-white">Website Analytics</h2>
+                        <h2 className="text-sm font-bold text-[#18113C]">Website Analytics</h2>
                       </div>
                       <select 
                         value={timeRange} 
                         onChange={(e) => setTimeRange(e.target.value)}
-                        className="text-xs bg-[#1F1744] border border-purple-800/60 rounded-xl px-3 py-1.5 text-purple-200 focus:outline-none"
+                        className="text-xs bg-purple-50 border border-purple-100 rounded-xl px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-300"
                       >
                         <option>Last 7 Days</option>
                         <option>Last 30 Days</option>
@@ -1379,19 +1657,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     {/* Chart Container */}
                     <div className="relative pt-4">
                       {/* Tooltip Pill */}
-                      <div className="absolute right-12 top-6 z-10 px-3 py-1 rounded-full bg-[#6D28D9] text-white text-[10px] font-bold shadow-lg shadow-purple-900/50 border border-purple-400/40">
+                      <div className="absolute right-12 top-6 z-10 px-3 py-1 rounded-full bg-[#6D28D9] text-white text-[10px] font-bold shadow-lg shadow-purple-200 border border-purple-400/40">
                         98.5K Visitors
                       </div>
 
                       {/* SVG Line / Wave Chart with Grid */}
                       <div className="h-56 w-full relative">
                         {/* Grid Lines */}
-                        <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-purple-400/50 pointer-events-none">
-                          <div className="border-b border-purple-900/30 flex justify-between pr-2"><span>100k</span></div>
-                          <div className="border-b border-purple-900/30 flex justify-between pr-2"><span>75k</span></div>
-                          <div className="border-b border-purple-900/30 flex justify-between pr-2"><span>50k</span></div>
-                          <div className="border-b border-purple-900/30 flex justify-between pr-2"><span>25k</span></div>
-                          <div className="flex justify-between pr-2"><span>0</span></div>
+                        <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-gray-400/50 pointer-events-none">
+                          <div className="border-b border-purple-100 flex justify-between pr-2 font-medium"><span>100k</span></div>
+                          <div className="border-b border-purple-100 flex justify-between pr-2 font-medium"><span>75k</span></div>
+                          <div className="border-b border-purple-100 flex justify-between pr-2 font-medium"><span>50k</span></div>
+                          <div className="border-b border-purple-100 flex justify-between pr-2 font-medium"><span>25k</span></div>
+                          <div className="flex justify-between pr-2 font-medium"><span>0</span></div>
                         </div>
 
                         {/* Interactive Curve */}
@@ -1421,7 +1699,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* X-axis Labels */}
-                      <div className="flex justify-between text-[10px] text-purple-400/60 pt-2 px-6">
+                      <div className="flex justify-between text-[10px] text-gray-400 font-bold pt-2 px-6">
                         <span>Oct 1</span>
                         <span>Oct 8</span>
                         <span>Oct 15</span>
@@ -1432,17 +1710,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   </div>
 
                   {/* Manage Website Pages (8 cards matching screenshot) */}
-                  <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
+                  <div className="p-6 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-purple-900/60 flex items-center justify-center text-purple-300">
+                        <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-[#6D28D9]">
                           <LayoutDashboard className="w-4 h-4" />
                         </div>
-                        <h2 className="text-sm font-bold text-white">Manage Website Pages</h2>
+                        <h2 className="text-sm font-bold text-[#18113C]">Manage Website Pages</h2>
                       </div>
                       <button 
                         onClick={() => setCurrentTab('courses')}
-                        className="text-xs text-purple-400 hover:text-white flex items-center gap-1 font-semibold"
+                        className="text-xs text-gray-400 hover:text-[#6D28D9] flex items-center gap-1 font-bold transition-colors"
                       >
                         <span>View All</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1453,18 +1731,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
                       
                       {/* Home Page */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative">
+                      <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-300 transition-colors shadow-sm">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative">
                           <img 
                             src="/assets/aistudio/hero_laptop_illustration.png" 
                             alt="Home Preview" 
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
                           />
-                          <span className="absolute top-2 left-2 text-[9px] bg-purple-950/90 text-purple-200 px-1.5 py-0.5 rounded font-bold">WEVERSITY</span>
+                          <span className="absolute top-2 left-2 text-[9px] bg-purple-100/90 text-gray-600 px-1.5 py-0.5 rounded font-bold">WEVERSITY</span>
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Home Page</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Hero, Services, Stats...</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Home Page</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Hero, Services, Stats...</p>
                         </div>
                         <button 
                           onClick={() => setQuickActionModal('Edit Home Page Content')}
@@ -1476,8 +1754,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Courses */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative">
+                      <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-300 transition-colors shadow-sm">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative">
                           <img 
                             src="/assets/aistudio/course_web_dev.png" 
                             alt="Courses Preview" 
@@ -1485,8 +1763,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Courses</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">All courses &amp; details</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Courses</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">All courses &amp; details</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('courses')}
@@ -1498,8 +1776,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Portfolio */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative">
+                      <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-300 transition-colors shadow-sm">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative">
                           <img 
                             src="/assets/aistudio/hero_illustration_full.png" 
                             alt="Portfolio Preview" 
@@ -1507,8 +1785,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Portfolio</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Projects &amp; Showcase</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Portfolio</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Projects &amp; Showcase</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('portfolio')}
@@ -1520,13 +1798,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Cost Estimator */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative flex items-center justify-center">
-                          <Calculator className="w-10 h-10 text-purple-300" />
+                      <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-300 transition-colors shadow-sm">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative flex items-center justify-center">
+                          <Calculator className="w-10 h-10 text-gray-500" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Cost Estimator</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Project Pricing</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Cost Estimator</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Project Pricing</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('estimator')}
@@ -1538,13 +1816,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* About Us */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative flex items-center justify-center">
-                          <Building2 className="w-10 h-10 text-purple-300" />
+                      <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-300 transition-colors shadow-sm">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative flex items-center justify-center">
+                          <Building2 className="w-10 h-10 text-gray-500" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">About Us</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Company Info</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">About Us</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Company Info</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('about')}
@@ -1556,8 +1834,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Teachers */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative">
+                      <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-300 transition-colors shadow-sm">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative">
                           <img 
                             src="/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png" 
                             alt="Teachers Preview" 
@@ -1565,8 +1843,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Teachers</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Faculty Members</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Teachers</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Faculty Members</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('teachers')}
@@ -1578,13 +1856,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Live Sessions */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative flex items-center justify-center">
-                          <Video className="w-10 h-10 text-purple-300" />
+                      <div className="p-3.5 rounded-2xl bg-purple-50/50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative flex items-center justify-center">
+                          <Video className="w-10 h-10 text-gray-500" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Live Sessions</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Classes &amp; Schedules</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Live Sessions</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Classes &amp; Schedules</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('live_sessions')}
@@ -1596,13 +1874,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Contact */}
-                      <div className="p-3.5 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
-                        <div className="h-24 rounded-xl bg-purple-950/80 overflow-hidden relative flex items-center justify-center">
-                          <Mail className="w-10 h-10 text-purple-300" />
+                      <div className="p-3.5 rounded-2xl bg-purple-50/50 border border-purple-100 flex flex-col justify-between space-y-3 group hover:border-purple-600 transition-colors">
+                        <div className="h-24 rounded-xl bg-purple-100/80 overflow-hidden relative flex items-center justify-center">
+                          <Mail className="w-10 h-10 text-gray-500" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-white">Contact</h4>
-                          <p className="text-[10px] text-purple-400 mt-0.5 truncate">Contact Details</p>
+                          <h4 className="font-bold text-xs text-[#18113C]">Contact</h4>
+                          <p className="text-[10px] text-gray-400 mt-0.5 truncate">Contact Details</p>
                         </div>
                         <button 
                           onClick={() => setCurrentTab('contact')}
@@ -1622,32 +1900,32 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="lg:col-span-5 space-y-6">
                   
                   {/* Quick Actions (8 Buttons matching screenshot) */}
-                  <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
+                  <div className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-400" />
-                      <h2 className="text-sm font-bold text-white">Quick Actions</h2>
+                      <Sparkles className="w-4 h-4 text-gray-500" />
+                      <h2 className="text-sm font-bold text-[#18113C]">Quick Actions</h2>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2.5">
                       
                       <button 
                         onClick={() => setQuickActionModal('Edit Home Page')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <LayoutDashboard className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Edit Home Page</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Edit Home Page</span>
                       </button>
 
                       <button 
                         onClick={() => setQuickActionModal('Add New Course')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <BookOpen className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Add Course</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Add Course</span>
                       </button>
 
                       <button 
@@ -1655,77 +1933,77 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           setCurrentTab('portfolio');
                           handleOpenCreateProject();
                         }}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <Briefcase className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Add Project</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Add Project</span>
                       </button>
 
                       <button 
                         onClick={() => setQuickActionModal('Update Team Members')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <Users className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Update Team</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Update Team</span>
                       </button>
 
                       <button 
                         onClick={() => setCurrentTab('teachers')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <GraduationCap className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Manage Teachers</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Manage Teachers</span>
                       </button>
 
                       <button 
                         onClick={() => setCurrentTab('live_sessions')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <Play className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Live Session</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Live Session</span>
                       </button>
 
                       <button 
                         onClick={() => setCurrentTab('about')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <Info className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Edit About Us</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Edit About Us</span>
                       </button>
 
                       <button 
                         onClick={() => setCurrentTab('contact')}
-                        className="p-3 rounded-2xl bg-[#1C1340] border border-purple-800/40 hover:border-purple-500 hover:bg-purple-900/40 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
+                        className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100 hover:border-purple-500 hover:bg-purple-50 flex flex-col items-center justify-center text-center space-y-2 transition-all group"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-purple-900/60 flex items-center justify-center text-purple-300 group-hover:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform">
                           <Mail className="w-4 h-4" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-200 leading-tight">Contact Info</span>
+                        <span className="text-[10px] font-semibold text-gray-600 leading-tight">Contact Info</span>
                       </button>
 
                     </div>
                   </div>
 
                   {/* Recent Messages Card */}
-                  <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
+                  <div className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-purple-400" />
-                        <h2 className="text-sm font-bold text-white">Recent Messages</h2>
+                        <MessageSquare className="w-4 h-4 text-gray-500" />
+                        <h2 className="text-sm font-bold text-[#18113C]">Recent Messages</h2>
                       </div>
                       <button 
                         onClick={() => setCurrentTab('messages')}
-                        className="text-xs text-purple-400 hover:text-white flex items-center gap-1 font-semibold"
+                        className="text-xs text-gray-400 hover:text-[#18113C] flex items-center gap-1 font-semibold"
                       >
                         <span>View All</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1737,33 +2015,33 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         <div 
                           key={msg.id} 
                           onClick={() => setCurrentTab('messages')}
-                          className="flex items-center justify-between p-2.5 rounded-xl hover:bg-purple-950/50 cursor-pointer transition-colors"
+                          className="flex items-center justify-between p-2.5 rounded-xl hover:bg-purple-100/50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full ${msg.color} text-white font-bold text-[10px] flex items-center justify-center shrink-0`}>
+                            <div className={`w-8 h-8 rounded-full ${msg.color} text-[#18113C] font-bold text-[10px] flex items-center justify-center shrink-0`}>
                               {msg.initials}
                             </div>
                             <div>
-                              <div className="text-xs font-bold text-white">{msg.name}</div>
-                              <div className="text-[11px] text-purple-300/80 truncate max-w-[180px] sm:max-w-xs">{msg.message}</div>
+                              <div className="text-xs font-bold text-[#18113C]">{msg.name}</div>
+                              <div className="text-[11px] text-gray-500/80 truncate max-w-[180px] sm:max-w-xs">{msg.message}</div>
                             </div>
                           </div>
-                          <span className="text-[10px] text-purple-400 font-medium shrink-0">{msg.time}</span>
+                          <span className="text-[10px] text-gray-400 font-medium shrink-0">{msg.time}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Website Settings Card */}
-                  <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
+                  <div className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Settings className="w-4 h-4 text-purple-400" />
-                        <h2 className="text-sm font-bold text-white">Website Settings</h2>
+                        <Settings className="w-4 h-4 text-gray-500" />
+                        <h2 className="text-sm font-bold text-[#18113C]">Website Settings</h2>
                       </div>
                       <button 
                         onClick={() => setCurrentTab('settings')}
-                        className="text-xs text-purple-400 hover:text-white flex items-center gap-1 font-semibold"
+                        className="text-xs text-gray-400 hover:text-[#18113C] flex items-center gap-1 font-semibold"
                       >
                         <span>Edit Settings</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -1773,20 +2051,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <div className="space-y-3 text-xs">
                       
                       {/* Website Status */}
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40">
-                        <span className="text-purple-300 font-medium">Website Status</span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 text-[10px] font-bold border border-emerald-800/60">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/50 border border-purple-100">
+                        <span className="text-gray-500 font-medium">Website Status</span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold border border-emerald-800/60">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           {websiteStatus}
                         </span>
                       </div>
 
                       {/* Maintenance Mode Toggle */}
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40">
-                        <span className="text-purple-300 font-medium">Maintenance Mode</span>
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/50 border border-purple-100">
+                        <span className="text-gray-500 font-medium">Maintenance Mode</span>
                         <button 
                           onClick={() => setMaintenanceMode(!maintenanceMode)}
-                          className="text-purple-300 hover:text-white transition-colors"
+                          className="text-gray-500 hover:text-[#18113C] transition-colors"
                         >
                           {maintenanceMode ? (
                             <ToggleRight className="w-7 h-7 text-[#6D28D9]" />
@@ -1797,11 +2075,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Dark Mode Toggle */}
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40">
-                        <span className="text-purple-300 font-medium">Dark Mode</span>
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/50 border border-purple-100">
+                        <span className="text-gray-500 font-medium">Dark Mode</span>
                         <button 
                           onClick={() => setDarkMode(!darkMode)}
-                          className="text-purple-300 hover:text-white transition-colors"
+                          className="text-gray-500 hover:text-[#18113C] transition-colors"
                         >
                           {darkMode ? (
                             <ToggleRight className="w-7 h-7 text-[#6D28D9]" />
@@ -1812,11 +2090,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
 
                       {/* Social Links */}
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40">
-                        <span className="text-purple-300 font-medium">Social Links</span>
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/50 border border-purple-100">
+                        <span className="text-gray-500 font-medium">Social Links</span>
                         <button 
                           onClick={() => setCurrentTab('settings')}
-                          className="text-xs text-purple-400 hover:text-white font-bold flex items-center gap-1"
+                          className="text-xs text-gray-400 hover:text-[#18113C] font-bold flex items-center gap-1"
                         >
                           <span>Manage</span>
                           <ArrowRight className="w-3 h-3" />
@@ -1837,12 +2115,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-display font-bold text-white">Courses Manager</h1>
-                  <p className="text-xs text-purple-300 mt-1">Manage active courses, pricing, and enrollments</p>
+                  <h1 className="text-2xl font-display font-black text-[#18113C]">Courses Manager</h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage active courses, pricing, and enrollments</p>
                 </div>
                 <button
                   onClick={() => setQuickActionModal('Add New Course')}
-                  className="px-4 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-900/50"
+                  className="px-4 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add New Course</span>
@@ -1851,8 +2129,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {COURSES.map((course) => (
-                  <div key={course.id} className="p-4 rounded-2xl bg-[#161033] border border-purple-800/40 space-y-3">
-                    <div className="h-32 rounded-xl bg-purple-950 overflow-hidden relative">
+                  <div key={course.id} className="p-4 rounded-2xl bg-white border border-purple-100 space-y-3">
+                    <div className="h-32 rounded-xl bg-purple-100 overflow-hidden relative">
                       <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
                       {course.badge && (
                         <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#6D28D9] text-white text-[10px] font-bold">
@@ -1861,24 +2139,24 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       )}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-white line-clamp-1">{course.title}</h4>
-                      <p className="text-xs text-purple-300/80 line-clamp-2 mt-1">{course.description}</p>
+                      <h4 className="font-bold text-sm text-[#18113C] line-clamp-1">{course.title}</h4>
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-1">{course.description}</p>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-purple-900/40 text-xs">
+                    <div className="flex items-center justify-between pt-2 border-t border-purple-50 text-xs">
                       <div>
-                        <span className="text-[10px] text-purple-400 block">Tuition Fee</span>
-                        <span className="font-bold text-white">${course.priceUSD} USD</span>
+                        <span className="text-[10px] text-gray-400 block font-medium">Tuition Fee</span>
+                        <span className="font-black text-[#6D28D9]">${course.priceUSD} USD</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => setQuickActionModal(`Edit Course: ${course.title}`)}
-                          className="p-2 rounded-lg bg-purple-900/40 text-purple-300 hover:text-white hover:bg-purple-800/50"
+                          className="p-2 rounded-lg bg-purple-50 text-gray-500 hover:text-[#18113C] hover:bg-purple-800/50"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button 
                           onClick={() => setActionSuccess(`Course ${course.title} updated.`)}
-                          className="p-2 rounded-lg bg-emerald-950/60 text-emerald-400 hover:bg-emerald-900/60"
+                          className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-900/60"
                         >
                           <Check className="w-3.5 h-3.5" />
                         </button>
@@ -1895,31 +2173,31 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-display font-bold text-white">Client Messages &amp; Quotes</h1>
-                  <p className="text-xs text-purple-300 mt-1">Direct inquiries submitted through WeVersity website</p>
+                  <h1 className="text-2xl font-display font-black text-[#18113C]">Client Messages &amp; Quotes</h1>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Direct inquiries submitted through WeVersity website</p>
                 </div>
-                <div className="text-xs text-purple-300 font-semibold bg-[#161033] px-3 py-1.5 rounded-xl border border-purple-800/40">
+                <div className="text-xs text-[#6D28D9] font-black bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 shadow-sm">
                   Total: {messages.length} inquiries
                 </div>
               </div>
 
               <div className="space-y-3">
                 {messages.map((m) => (
-                  <div key={m.id} className="p-4 rounded-2xl bg-[#161033] border border-purple-800/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div key={m.id} className="p-4 rounded-2xl bg-white border border-purple-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex items-start gap-3.5">
-                      <div className={`w-10 h-10 rounded-full ${m.color} text-white font-bold text-xs flex items-center justify-center shrink-0`}>
+                      <div className={`w-10 h-10 rounded-full ${m.color} text-[#18113C] font-bold text-xs flex items-center justify-center shrink-0`}>
                         {m.initials}
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-white">{m.name}</span>
-                          <span className="text-[10px] text-purple-400 bg-purple-950 px-2 py-0.5 rounded border border-purple-800/40">{m.subject}</span>
+                          <span className="font-bold text-sm text-[#18113C]">{m.name}</span>
+                          <span className="text-[10px] text-gray-400 bg-purple-100 px-2 py-0.5 rounded border border-purple-100">{m.subject}</span>
                           {m.unread && (
                             <span className="w-2 h-2 rounded-full bg-rose-500" />
                           )}
                         </div>
-                        <p className="text-xs text-purple-200/90 leading-relaxed">{m.message}</p>
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-purple-400/80 pt-1">
+                        <p className="text-xs text-gray-600/90 leading-relaxed">{m.message}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-gray-400/80 pt-1">
                           <span>📧 {m.email}</span>
                           {m.phone && <span>📞 {m.phone}</span>}
                           <span>⏱ {m.time}</span>
@@ -1932,19 +2210,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         href={`https://wa.me/?text=Hi%20${encodeURIComponent(m.name)},%20thank%20you%20for%20contacting%20WeVersity.`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded-xl bg-emerald-950 border border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/60 text-xs font-bold flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-700/60 text-emerald-600 hover:bg-emerald-900/60 text-xs font-bold flex items-center gap-1.5"
                       >
                         <span>WhatsApp</span>
                       </a>
                       <a 
                         href={`mailto:${m.email}?subject=Re:%20WeVersity%20Inquiry`}
-                        className="px-3 py-1.5 rounded-xl bg-purple-900/40 border border-purple-700/60 text-purple-200 hover:bg-purple-800/50 text-xs font-bold"
+                        className="px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-100 text-gray-600 hover:bg-purple-800/50 text-xs font-bold"
                       >
                         Reply Email
                       </a>
                       <button 
                         onClick={() => handleDeleteMessage(m.id)}
-                        className="p-2 rounded-xl text-rose-400 hover:bg-rose-950/60 transition-colors"
+                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50/60 transition-colors"
                         title="Delete Message"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1960,44 +2238,44 @@ export const AdminView: React.FC<AdminViewProps> = ({
           {currentTab === 'settings' && (
             <div className="space-y-6 max-w-4xl">
               <div>
-                <h1 className="text-2xl font-display font-bold text-white">Website &amp; Security Settings</h1>
-                <p className="text-xs text-purple-300 mt-1">Configure administrator master credentials and device privacy</p>
+                <h1 className="text-2xl font-display font-bold text-[#18113C]">Website &amp; Security Settings</h1>
+                <p className="text-xs text-gray-500 mt-1">Configure administrator master credentials and device privacy</p>
               </div>
 
               {/* Device Privacy Card (Addressing User's Exact Need) */}
-              <div className="p-6 rounded-3xl bg-[#161033] border border-purple-700/60 space-y-5 relative overflow-hidden">
+              <div className="p-6 rounded-3xl bg-white border border-purple-100 space-y-5 relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-purple-900/60 border border-purple-600/50 flex items-center justify-center text-purple-300">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-600/50 flex items-center justify-center text-gray-500">
                       <Laptop className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-base text-white">This PC / Device Authorization</h3>
-                      <p className="text-xs text-purple-300">Control which computers display the Admin Button</p>
+                      <h3 className="font-bold text-base text-[#18113C]">This PC / Device Authorization</h3>
+                      <p className="text-xs text-gray-500">Control which computers display the Admin Button</p>
                     </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                     isDeviceAuthorized 
-                      ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/60' 
-                      : 'bg-rose-950/80 text-rose-400 border-rose-700/60'
+                      ? 'bg-emerald-50/80 text-emerald-600 border-emerald-700/60' 
+                      : 'bg-rose-50/80 text-rose-600 border-rose-700/60'
                   }`}>
                     {isDeviceAuthorized ? '✓ This PC is Authorized' : '✕ Not Authorized'}
                   </span>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/40 space-y-3 text-xs leading-relaxed text-purple-200">
+                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3 text-xs leading-relaxed text-gray-600">
                   <p>
-                    <strong className="text-white">Aapki requirement:</strong> "ye password ka button mere PC pe hi show ho aur kisi aur ke PC pe show na ho."
+                    <strong className="text-[#18113C]">Aapki requirement:</strong> "ye password ka button mere PC pe hi show ho aur kisi aur ke PC pe show na ho."
                   </p>
-                  <p className="text-purple-300">
-                    Jab aap is browser pe login karte hain aur <strong className="text-white">"Authorize this PC"</strong> check karte hain, to Admin Button sirf aapke computer par nazar aata hai. Kisi doosre user ke computer ya mobile par koi Admin button show nahi hoga.
+                  <p className="text-gray-500">
+                    Jab aap is browser pe login karte hain aur <strong className="text-[#18113C]">"Authorize this PC"</strong> check karte hain, to Admin Button sirf aapke computer par nazar aata hai. Kisi doosre user ke computer ya mobile par koi Admin button show nahi hoga.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
                   <div>
-                    <span className="font-bold text-xs text-white block">Quick Admin Access on This Machine</span>
-                    <span className="text-[11px] text-purple-400">
+                    <span className="font-bold text-xs text-[#18113C] block">Quick Admin Access on This Machine</span>
+                    <span className="text-[11px] text-gray-500">
                       {isDeviceAuthorized ? 'Enabled — button is visible in navbar on this computer' : 'Disabled — button is hidden on this computer'}
                     </span>
                   </div>
@@ -2005,7 +2283,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     onClick={handleToggleDeviceAuth}
                     className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
                       isDeviceAuthorized
-                        ? 'bg-rose-950 text-rose-300 border border-rose-700 hover:bg-rose-900/60'
+                        ? 'bg-rose-50 text-rose-300 border border-rose-700 hover:bg-rose-900/60'
                         : 'bg-emerald-900 text-emerald-200 border border-emerald-600 hover:bg-emerald-800'
                     }`}
                   >
@@ -2015,22 +2293,22 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </div>
 
               {/* Change Admin Password */}
-              <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
+              <div className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-purple-900/60 border border-purple-600/50 flex items-center justify-center text-purple-300">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-600/50 flex items-center justify-center text-gray-500">
                     <Lock className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-base text-white">Change Master Admin Password</h3>
-                    <p className="text-xs text-purple-300">Default password is currently <code className="bg-purple-950 px-1.5 py-0.5 rounded text-purple-200 font-mono">king295</code></p>
+                    <h3 className="font-bold text-base text-[#18113C]">Change Master Admin Password</h3>
+                    <p className="text-xs text-gray-500">Default password is currently <code className="bg-purple-100 px-1.5 py-0.5 rounded text-gray-600 font-mono">king295</code></p>
                   </div>
                 </div>
 
                 {passwordMsg && (
                   <div className={`p-3 rounded-xl text-xs ${
                     passwordMsg.type === 'success' 
-                      ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700' 
-                      : 'bg-rose-950/80 text-rose-300 border border-rose-700'
+                      ? 'bg-emerald-50/80 text-emerald-600 border border-emerald-700' 
+                      : 'bg-rose-50/80 text-rose-300 border border-rose-700'
                   }`}>
                     {passwordMsg.text}
                   </div>
@@ -2038,38 +2316,38 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md pt-2">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-purple-200">Current Password</label>
+                    <label className="text-xs font-semibold text-gray-600">Current Password</label>
                     <input 
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="king295"
-                      className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] focus:outline-none focus:border-purple-400"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-purple-200">New Password</label>
+                    <label className="text-xs font-semibold text-gray-600">New Password</label>
                     <input 
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password..."
-                      className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] focus:outline-none focus:border-purple-400"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-purple-200">Confirm New Password</label>
+                    <label className="text-xs font-semibold text-gray-600">Confirm New Password</label>
                     <input 
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password..."
-                      className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] focus:outline-none focus:border-purple-400"
                     />
                   </div>
                   <button 
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold shadow-md shadow-purple-900/50 transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold shadow-md shadow-purple-200 transition-colors"
                   >
                     Update Password
                   </button>
@@ -2077,23 +2355,23 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </div>
 
               {/* Maintenance Mode & Website Status */}
-              <div className="p-6 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-4">
-                <h3 className="font-bold text-base text-white">Website Controls</h3>
+              <div className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4">
+                <h3 className="font-bold text-base text-[#18113C]">Website Controls</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex items-center justify-between">
+                  <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-white block">Maintenance Banner</span>
-                      <span className="text-[10px] text-purple-400">Display maintenance mode notification</span>
+                      <span className="font-semibold text-[#18113C] block">Maintenance Banner</span>
+                      <span className="text-[10px] text-gray-500">Display maintenance mode notification</span>
                     </div>
                     <button onClick={() => setMaintenanceMode(!maintenanceMode)}>
                       {maintenanceMode ? <ToggleRight className="w-8 h-8 text-[#6D28D9]" /> : <ToggleLeft className="w-8 h-8 text-purple-600" />}
                     </button>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/40 flex items-center justify-between">
+                  <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-white block">Dark Mode</span>
-                      <span className="text-[10px] text-purple-400">Default theme for visitors</span>
+                      <span className="font-semibold text-[#18113C] block">Dark Mode</span>
+                      <span className="text-[10px] text-gray-500">Default theme for visitors</span>
                     </div>
                     <button onClick={() => setDarkMode(!darkMode)}>
                       {darkMode ? <ToggleRight className="w-8 h-8 text-[#6D28D9]" /> : <ToggleLeft className="w-8 h-8 text-purple-600" />}
@@ -2112,12 +2390,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h1 className="text-2xl font-display font-bold text-white">Portfolio Manager</h1>
-                    <span className="px-2.5 py-0.5 rounded-full bg-purple-900/60 border border-purple-700/60 text-purple-200 text-xs font-bold">
+                    <h1 className="text-2xl font-display font-bold text-[#18113C]">Portfolio Manager</h1>
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-50 border border-purple-100 text-gray-600 text-xs font-bold">
                       {portfolioList.length} Live on Website
                     </span>
                   </div>
-                  <p className="text-xs text-purple-300 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Manage projects, case studies, and live links. Any edits or additions instantly update on the website!
                   </p>
                 </div>
@@ -2125,7 +2403,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={onViewWebsite}
-                    className="px-3.5 py-2 rounded-xl bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-purple-700/40 transition-colors"
+                    className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-gray-600 hover:text-[#18113C] text-xs font-bold flex items-center gap-1.5 border border-purple-700/40 transition-colors"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>View on Website</span>
@@ -2133,7 +2411,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                   <button
                     onClick={handleOpenCreateProject}
-                    className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-900/50 transition-all hover:scale-[1.02]"
+                    className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 transition-all hover:scale-[1.02]"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Create Item</span>
@@ -2142,20 +2420,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </div>
 
               {/* Search & Category Filter Toolbar */}
-              <div className="p-4 rounded-2xl bg-[#161033] border border-purple-800/40 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-white border border-purple-100 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="relative w-full md:w-80">
-                  <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={portfolioSearch}
                     onChange={(e) => setPortfolioSearch(e.target.value)}
                     placeholder="Search by title, client, or tech..."
-                    className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#1C1340] border border-purple-800/60 text-xs text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full pl-9 pr-8 py-2 rounded-xl bg-purple-50/50 border border-purple-100 text-xs text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                   {portfolioSearch && (
                     <button 
                       onClick={() => setPortfolioSearch('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#18113C]"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -2178,7 +2456,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         portfolioCat === cat.id
                           ? 'bg-[#6D28D9] text-white shadow-md shadow-purple-900/40'
-                          : 'bg-[#1C1340] text-purple-300 hover:text-white hover:bg-purple-900/40 border border-purple-800/40'
+                          : 'bg-purple-50/50 text-gray-500 hover:text-[#18113C] hover:bg-purple-50 border border-purple-100'
                       }`}
                     >
                       {cat.label}
@@ -2196,12 +2474,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                     p.summary.toLowerCase().includes(portfolioSearch.toLowerCase());
                 return matchCat && matchSearch;
               }).length === 0 ? (
-                <div className="p-12 rounded-3xl bg-[#161033] border border-purple-800/40 text-center space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-950 flex items-center justify-center mx-auto text-purple-400">
+                <div className="p-12 rounded-3xl bg-white border border-purple-100 text-center space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mx-auto text-gray-500">
                     <Briefcase className="w-6 h-6" />
                   </div>
-                  <h3 className="text-sm font-bold text-white">No projects found</h3>
-                  <p className="text-xs text-purple-300">Try adjusting your search query or category filter.</p>
+                  <h3 className="text-sm font-bold text-[#18113C]">No projects found</h3>
+                  <p className="text-xs text-gray-500">Try adjusting your search query or category filter.</p>
                   <button
                     onClick={handleOpenCreateProject}
                     className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold inline-flex items-center gap-1.5"
@@ -2224,11 +2502,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     .map((project) => (
                       <div
                         key={project.id}
-                        className="rounded-3xl bg-[#161033] border border-purple-800/50 hover:border-purple-600/70 overflow-hidden flex flex-col justify-between transition-all duration-300 group shadow-lg shadow-purple-950/40"
+                        className="rounded-3xl bg-white border border-purple-800/50 hover:border-purple-600/70 overflow-hidden flex flex-col justify-between transition-all duration-300 group shadow-lg shadow-purple-950/40"
                       >
                         <div>
                           {/* Project Image & Category Banner */}
-                          <div className="relative h-44 w-full bg-[#1C1340] overflow-hidden">
+                          <div className="relative h-44 w-full bg-purple-50/50 overflow-hidden">
                             <img
                               src={project.image}
                               alt={project.title}
@@ -2247,32 +2525,32 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 href={project.demoUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md flex items-center gap-1 transition-colors"
+                                className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-[#18113C] shadow-md flex items-center gap-1 transition-colors"
                               >
                                 <Globe className="w-3 h-3" />
                                 <span>Live Site</span>
                                 <ExternalLink className="w-2.5 h-2.5" />
                               </a>
                             ) : (
-                              <span className="absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-purple-950/80 text-purple-300 border border-purple-800/60">
+                              <span className="absolute top-3 right-3 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-purple-100/80 text-gray-500 border border-purple-100">
                                 Client System
                               </span>
                             )}
 
                             {/* Year & Client */}
-                            <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-white drop-shadow">
-                              <span className="font-semibold text-purple-200 text-[11px] truncate">{project.client} • {project.location}</span>
+                            <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-[#18113C] drop-shadow">
+                              <span className="font-semibold text-gray-600 text-[11px] truncate">{project.client} • {project.location}</span>
                               <span className="text-[10px] bg-purple-900/80 px-2 py-0.5 rounded-md font-bold">{project.year}</span>
                             </div>
                           </div>
 
                           {/* Content */}
                           <div className="p-4 space-y-3">
-                            <h3 className="font-bold text-sm text-white line-clamp-1 group-hover:text-purple-300 transition-colors">
+                            <h3 className="font-bold text-sm text-[#18113C] line-clamp-1 group-hover:text-gray-500 transition-colors">
                               {project.title}
                             </h3>
                             
-                            <p className="text-xs text-purple-300/80 line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-gray-500/80 line-clamp-2 leading-relaxed">
                               {project.summary}
                             </p>
 
@@ -2281,13 +2559,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                               {project.tags.slice(0, 4).map((tag, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-2 py-0.5 rounded-md bg-[#1F1744] text-purple-300 border border-purple-800/40 font-medium"
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-purple-50/50 text-gray-500 border border-purple-100 font-medium"
                                 >
                                   {tag}
                                 </span>
                               ))}
                               {project.tags.length > 4 && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-purple-950 text-purple-400">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-purple-100 text-gray-500">
                                   +{project.tags.length - 4}
                                 </span>
                               )}
@@ -2295,11 +2573,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                             {/* Results preview */}
                             {project.results && project.results.length > 0 && (
-                              <div className="pt-2 border-t border-purple-900/40 grid grid-cols-2 gap-2 text-[10px]">
+                              <div className="pt-2 border-t border-purple-100 grid grid-cols-2 gap-2 text-[10px]">
                                 {project.results.slice(0, 2).map((res, i) => (
-                                  <div key={i} className="p-1.5 rounded-lg bg-[#1C1340] border border-purple-800/30">
-                                    <span className="font-bold text-white block">{res.metric}</span>
-                                    <span className="text-purple-400 truncate block">{res.label}</span>
+                                  <div key={i} className="p-1.5 rounded-lg bg-purple-50/50 border border-purple-800/30">
+                                    <span className="font-bold text-[#18113C] block">{res.metric}</span>
+                                    <span className="text-gray-400 truncate block">{res.label}</span>
                                   </div>
                                 ))}
                               </div>
@@ -2308,19 +2586,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         </div>
 
                         {/* Action Buttons Footer */}
-                        <div className="p-3 bg-[#1C1340]/60 border-t border-purple-800/40 flex items-center justify-between gap-2">
+                        <div className="p-3 bg-purple-50/60 border-t border-purple-100 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleOpenEditProject(project)}
-                              className="px-3 py-1.5 rounded-xl bg-purple-900/40 hover:bg-[#6D28D9] text-purple-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                              className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-[#6D28D9] text-gray-600 hover:text-[#18113C] text-xs font-bold flex items-center gap-1.5 transition-colors"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                               <span>Edit</span>
                             </button>
 
                             <button
-                              onClick={() => setDeleteConfirmId(project.id)}
-                              className="p-1.5 rounded-xl text-rose-400 hover:bg-rose-950/60 hover:text-rose-300 transition-colors"
+                              onClick={() => setDeleteConfirm({ id: project.id, name: project.title, type: 'project' })}
+                              className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-50/60 hover:text-rose-300 transition-colors"
                               title="Delete project"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2333,7 +2611,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 href={project.demoUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-2.5 py-1 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-300 hover:bg-emerald-900 text-[11px] font-semibold flex items-center gap-1"
+                                className="px-2.5 py-1 rounded-xl bg-emerald-50/80 border border-emerald-700/60 text-emerald-600 hover:bg-emerald-900 text-[11px] font-semibold flex items-center gap-1"
                               >
                                 <span>Visit</span>
                                 <ExternalLink className="w-3 h-3" />
@@ -2341,7 +2619,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             )}
                             <button
                               onClick={onViewWebsite}
-                              className="px-2.5 py-1 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-300 text-[11px] font-semibold flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-xl bg-purple-50 hover:bg-purple-100 text-gray-500 text-[11px] font-semibold flex items-center gap-1"
                             >
                               <span>Website</span>
                               <ArrowRight className="w-3 h-3" />
@@ -2363,13 +2641,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-display font-bold text-white">Cost Estimator Manager</h1>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-600/70 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                    <h1 className="text-2xl font-display font-bold text-[#18113C]">Cost Estimator Manager</h1>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50/80 border border-emerald-600/70 text-emerald-600 text-[10px] font-bold flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       <span>Live Synced to Website</span>
                     </span>
                   </div>
-                  <p className="text-xs text-purple-300 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Manage project types, base pricing, timeline delivery, scale multipliers, add-ons, and PKR/GBP currency rates.
                   </p>
                 </div>
@@ -2377,7 +2655,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleResetEstimatorDefaults}
-                    className="px-3.5 py-2 rounded-xl bg-purple-950/70 border border-purple-800/60 hover:bg-purple-900 text-purple-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-purple-100/70 border border-purple-100 hover:bg-purple-900 text-gray-500 hover:text-[#18113C] text-xs font-bold transition-all flex items-center gap-1.5"
                     title="Reset all settings to default factory values"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -2386,7 +2664,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                   <button
                     onClick={onViewWebsite}
-                    className="px-3.5 py-2 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 text-xs font-bold transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-800 text-gray-600 text-xs font-bold transition-all flex items-center gap-1.5"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>Preview Website</span>
@@ -2395,7 +2673,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   {estimatorSubTab === 'types' && (
                     <button
                       onClick={handleOpenCreateType}
-                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-900/50 transition-all"
+                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200 transition-all"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Project Type</span>
@@ -2405,7 +2683,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   {estimatorSubTab === 'addons' && (
                     <button
                       onClick={handleOpenCreateAddon}
-                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-900/50 transition-all"
+                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200 transition-all"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Add-on Service</span>
@@ -2416,28 +2694,28 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               {/* Toast / Notification Banner */}
               {estimatorSavedToast && (
-                <div className="p-3.5 rounded-2xl bg-emerald-950/90 border border-emerald-500/60 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-xl shadow-emerald-950/50 animate-in fade-in duration-200">
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-500/60 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-xl shadow-emerald-200 animate-in fade-in duration-200">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span>{estimatorSavedToast}</span>
                   </div>
-                  <span className="text-[11px] text-emerald-300 font-normal">All front-end visitors see this instantly</span>
+                  <span className="text-[11px] text-emerald-600 font-normal">All front-end visitors see this instantly</span>
                 </div>
               )}
 
               {/* Sub-tab Pill Navigation */}
-              <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#161033] border border-purple-800/40 overflow-x-auto">
+              <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white border border-purple-100 overflow-x-auto">
                 <button
                   onClick={() => setEstimatorSubTab('types')}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     estimatorSubTab === 'types'
                       ? 'bg-[#6D28D9] text-white shadow-md'
-                      : 'text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      : 'text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Briefcase className="w-3.5 h-3.5" />
                   <span>1. Project Types & Base Rates</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'types' ? 'bg-purple-800' : 'bg-purple-950 text-purple-300'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'types' ? 'bg-purple-800' : 'bg-purple-100 text-gray-500'}`}>
                     {estimatorSettings.projectTypes?.length || 0}
                   </span>
                 </button>
@@ -2447,12 +2725,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     estimatorSubTab === 'addons'
                       ? 'bg-[#6D28D9] text-white shadow-md'
-                      : 'text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      : 'text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>2. Add-on Services</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'addons' ? 'bg-purple-800' : 'bg-purple-950 text-purple-300'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'addons' ? 'bg-purple-800' : 'bg-purple-100 text-gray-500'}`}>
                     {estimatorSettings.addonOptions?.length || 0}
                   </span>
                 </button>
@@ -2462,12 +2740,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     estimatorSubTab === 'scale'
                       ? 'bg-[#6D28D9] text-white shadow-md'
-                      : 'text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      : 'text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Sliders className="w-3.5 h-3.5" />
                   <span>3. Scope Scale & Multipliers</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'scale' ? 'bg-purple-800' : 'bg-purple-950 text-purple-300'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'scale' ? 'bg-purple-800' : 'bg-purple-100 text-gray-500'}`}>
                     {estimatorSettings.scaleOptions?.length || 0}
                   </span>
                 </button>
@@ -2477,12 +2755,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     estimatorSubTab === 'design_backend'
                       ? 'bg-[#6D28D9] text-white shadow-md'
-                      : 'text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      : 'text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
                   <span>4. UI/UX & Backend Tiers</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'design_backend' ? 'bg-purple-800' : 'bg-purple-950 text-purple-300'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${estimatorSubTab === 'design_backend' ? 'bg-purple-800' : 'bg-purple-100 text-gray-500'}`}>
                     {(estimatorSettings.designTiers?.length || 0) + (estimatorSettings.backendOptions?.length || 0)}
                   </span>
                 </button>
@@ -2492,12 +2770,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     estimatorSubTab === 'currency'
                       ? 'bg-[#6D28D9] text-white shadow-md'
-                      : 'text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      : 'text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <DollarSign className="w-3.5 h-3.5" />
                   <span>5. Currency Exchange Rates</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-bold border border-emerald-800/60">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold border border-emerald-800/60">
                     PKR ₨{estimatorSettings.currencyRates?.PKR || 280}
                   </span>
                 </button>
@@ -2513,26 +2791,26 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       return (
                         <div
                           key={item.id}
-                          className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 hover:border-purple-600/70 transition-all space-y-4 relative group"
+                          className="p-5 rounded-2xl bg-white border border-purple-100 hover:border-purple-600/70 transition-all space-y-4 relative group"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-1">
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/60 text-purple-300">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100/80 border border-purple-100 text-gray-500">
                                 #{item.id}
                               </span>
-                              <h3 className="font-bold text-sm text-white pt-1">{item.name}</h3>
+                              <h3 className="font-bold text-sm text-[#18113C] pt-1">{item.name}</h3>
                             </div>
                             <div className="flex items-center gap-1.5 opacity-90 group-hover:opacity-100">
                               <button
                                 onClick={() => handleOpenEditType(item)}
-                                className="p-1.5 rounded-xl bg-purple-900/60 text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-colors"
+                                className="p-1.5 rounded-xl bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-[#18113C] transition-colors"
                                 title="Edit this project type"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => setDeleteConfirmEstimator({ type: 'type', id: item.id, name: item.name })}
-                                className="p-1.5 rounded-xl text-rose-400 hover:bg-rose-950 hover:text-rose-300 transition-colors"
+                                className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-300 transition-colors"
                                 title="Delete project type"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2540,25 +2818,25 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-800/40 text-xs">
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-100 text-xs">
                             <div className="space-y-0.5">
-                              <span className="text-[10px] text-purple-400 font-medium">Base Price (USD)</span>
+                              <span className="text-[10px] text-gray-400 font-medium">Base Price (USD)</span>
                               <div className="text-base font-extrabold text-[#A78BFA]">${item.baseUSD.toLocaleString()}</div>
-                              <span className="text-[10px] text-emerald-400 font-bold block">₨ {pkrPrice.toLocaleString()} PKR</span>
+                              <span className="text-[10px] text-emerald-600 font-bold block">₨ {pkrPrice.toLocaleString()} PKR</span>
                             </div>
                             <div className="space-y-0.5 text-right">
-                              <span className="text-[10px] text-purple-400 font-medium">Estimated Timeline</span>
-                              <div className="text-sm font-bold text-white flex items-center justify-end gap-1">
-                                <Clock className="w-3.5 h-3.5 text-purple-400" />
+                              <span className="text-[10px] text-gray-400 font-medium">Estimated Timeline</span>
+                              <div className="text-sm font-bold text-[#18113C] flex items-center justify-end gap-1">
+                                <Clock className="w-3.5 h-3.5 text-gray-500" />
                                 <span>~{item.weeks} Weeks</span>
                               </div>
-                              <span className="text-[10px] text-purple-300 block">Baseline Delivery</span>
+                              <span className="text-[10px] text-gray-500 block">Baseline Delivery</span>
                             </div>
                           </div>
 
                           <button
                             onClick={() => handleOpenEditType(item)}
-                            className="w-full py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                            className="w-full py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-gray-600 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                           >
                             <Edit3 className="w-3 h-3" />
                             <span>Quick Edit Pricing & Weeks</span>
@@ -2580,26 +2858,26 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       return (
                         <div
                           key={addon.id}
-                          className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 hover:border-purple-600/70 transition-all space-y-4 relative group"
+                          className="p-5 rounded-2xl bg-white border border-purple-100 hover:border-purple-600/70 transition-all space-y-4 relative group"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="space-y-1">
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/60 text-purple-300">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100/80 border border-purple-100 text-gray-500">
                                 #{addon.id}
                               </span>
-                              <h3 className="font-bold text-sm text-white pt-1">{addon.name}</h3>
+                              <h3 className="font-bold text-sm text-[#18113C] pt-1">{addon.name}</h3>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => handleOpenEditAddon(addon)}
-                                className="p-1.5 rounded-xl bg-purple-900/60 text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-colors"
+                                className="p-1.5 rounded-xl bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-[#18113C] transition-colors"
                                 title="Edit Add-on"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => setDeleteConfirmEstimator({ type: 'addon', id: addon.id, name: addon.name })}
-                                className="p-1.5 rounded-xl text-rose-400 hover:bg-rose-950 hover:text-rose-300 transition-colors"
+                                className="p-1.5 rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-300 transition-colors"
                                 title="Delete Add-on"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2607,17 +2885,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-purple-800/40 flex items-center justify-between text-xs">
-                            <span className="text-[11px] text-purple-400">Add-on Surcharge</span>
+                          <div className="pt-2 border-t border-purple-100 flex items-center justify-between text-xs">
+                            <span className="text-[11px] text-gray-500">Add-on Surcharge</span>
                             <div className="text-right">
                               <span className="text-base font-extrabold text-[#A78BFA]">+${addon.costUSD.toLocaleString()}</span>
-                              <span className="text-[10px] text-emerald-400 font-bold block">+₨ {pkrPrice.toLocaleString()} PKR</span>
+                              <span className="text-[10px] text-emerald-600 font-bold block">+₨ {pkrPrice.toLocaleString()} PKR</span>
                             </div>
                           </div>
 
                           <button
                             onClick={() => handleOpenEditAddon(addon)}
-                            className="w-full py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                            className="w-full py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-gray-600 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                           >
                             <Edit3 className="w-3 h-3" />
                             <span>Modify Add-on Cost</span>
@@ -2632,8 +2910,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {/* Subtab 3: Scale & Multipliers */}
               {estimatorSubTab === 'scale' && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800/50 text-xs text-purple-200 flex items-center gap-3">
-                    <Info className="w-5 h-5 text-purple-400 shrink-0" />
+                  <div className="p-4 rounded-2xl bg-purple-100/60 border border-purple-800/50 text-xs text-gray-600 flex items-center gap-3">
+                    <Info className="w-5 h-5 text-gray-400 shrink-0" />
                     <span>
                       Scale multipliers dynamically scale the base project price. For example, selecting <strong>Compact (0.85x)</strong> discounts the base rate, while <strong>Enterprise (1.8x)</strong> expands the budget and adds delivery time.
                     </span>
@@ -2644,31 +2922,31 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       return (
                         <div
                           key={scale.id}
-                          className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 hover:border-purple-600/70 transition-all space-y-4 relative group"
+                          className="p-5 rounded-2xl bg-white border border-purple-100 hover:border-purple-600/70 transition-all space-y-4 relative group"
                         >
                           <div className="flex items-start justify-between">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/60 text-purple-300">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-100/80 border border-purple-100 text-gray-500">
                               #{scale.id}
                             </span>
                             <button
                               onClick={() => handleOpenEditScale(scale)}
-                              className="p-1.5 rounded-xl bg-purple-900/60 text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-colors"
+                              className="p-1.5 rounded-xl bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-[#18113C] transition-colors"
                               title="Edit Scale"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                           </div>
 
-                          <h3 className="font-bold text-sm text-white">{scale.label}</h3>
+                          <h3 className="font-bold text-sm text-[#18113C]">{scale.label}</h3>
 
-                          <div className="space-y-2 pt-2 border-t border-purple-800/40 text-xs">
+                          <div className="space-y-2 pt-2 border-t border-purple-100 text-xs">
                             <div className="flex items-center justify-between">
-                              <span className="text-purple-400">Multiplier:</span>
+                              <span className="text-gray-500">Multiplier:</span>
                               <span className="font-extrabold text-[#A78BFA] text-base">{scale.multiplier}x</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-purple-400">Delivery Delta:</span>
-                              <span className="font-bold text-white">
+                              <span className="text-gray-500">Delivery Delta:</span>
+                              <span className="font-bold text-[#18113C]">
                                 {scale.weeksDelta > 0 ? `+${scale.weeksDelta}` : scale.weeksDelta} Weeks
                               </span>
                             </div>
@@ -2676,7 +2954,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                           <button
                             onClick={() => handleOpenEditScale(scale)}
-                            className="w-full py-2 rounded-xl bg-purple-950 hover:bg-purple-900 text-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                            className="w-full py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-gray-600 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                           >
                             <Edit3 className="w-3 h-3" />
                             <span>Adjust Factor</span>
@@ -2692,13 +2970,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {estimatorSubTab === 'design_backend' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Design Tiers */}
-                  <div className="space-y-4 p-6 rounded-3xl bg-[#161033] border border-purple-800/40">
+                  <div className="space-y-4 p-6 rounded-3xl bg-white border border-purple-100">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-400" />
+                      <h3 className="text-sm font-bold text-[#18113C] flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-gray-500" />
                         <span>UI/UX Design Tiers (3 Levels)</span>
                       </h3>
-                      <span className="text-[10px] text-purple-400">Step 3 on Website</span>
+                      <span className="text-[10px] text-gray-500">Step 3 on Website</span>
                     </div>
 
                     <div className="space-y-3">
@@ -2707,14 +2985,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         return (
                           <div
                             key={tier.id}
-                            className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/50 hover:border-purple-600/70 transition-all flex items-center justify-between gap-3"
+                            className="p-4 rounded-2xl bg-purple-50/50 border border-purple-800/50 hover:border-purple-600/70 transition-all flex items-center justify-between gap-3"
                           >
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <h4 className="text-xs font-bold text-white">{tier.label}</h4>
-                                <span className="text-[9px] font-mono text-purple-400">#{tier.id}</span>
+                                <h4 className="text-xs font-bold text-[#18113C]">{tier.label}</h4>
+                                <span className="text-[9px] font-mono text-gray-500">#{tier.id}</span>
                               </div>
-                              <p className="text-[11px] text-purple-300">{tier.desc}</p>
+                              <p className="text-[11px] text-gray-500">{tier.desc}</p>
                             </div>
 
                             <div className="flex items-center gap-3 shrink-0">
@@ -2723,12 +3001,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   {tier.costUSD === 0 ? 'Included ($0)' : `+$${tier.costUSD}`}
                                 </span>
                                 {tier.costUSD > 0 && (
-                                  <span className="text-[10px] text-emerald-400 font-bold block">+₨ {pkrPrice.toLocaleString()}</span>
+                                  <span className="text-[10px] text-emerald-600 font-bold block">+₨ {pkrPrice.toLocaleString()}</span>
                                 )}
                               </div>
                               <button
                                 onClick={() => handleOpenEditDesign(tier)}
-                                className="p-1.5 rounded-xl bg-purple-950 text-purple-300 hover:text-white hover:bg-[#6D28D9] transition-colors"
+                                className="p-1.5 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] hover:bg-[#6D28D9] transition-colors"
                                 title="Edit Design Tier"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
@@ -2741,13 +3019,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   </div>
 
                   {/* Backend Tiers */}
-                  <div className="space-y-4 p-6 rounded-3xl bg-[#161033] border border-purple-800/40">
+                  <div className="space-y-4 p-6 rounded-3xl bg-white border border-purple-100">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <FolderGit2 className="w-4 h-4 text-purple-400" />
+                      <h3 className="text-sm font-bold text-[#18113C] flex items-center gap-2">
+                        <FolderGit2 className="w-4 h-4 text-gray-500" />
                         <span>Backend Complexity & APIs (3 Levels)</span>
                       </h3>
-                      <span className="text-[10px] text-purple-400">Step 4 on Website</span>
+                      <span className="text-[10px] text-gray-500">Step 4 on Website</span>
                     </div>
 
                     <div className="space-y-3">
@@ -2756,14 +3034,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         return (
                           <div
                             key={backend.id}
-                            className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/50 hover:border-purple-600/70 transition-all flex items-center justify-between gap-3"
+                            className="p-4 rounded-2xl bg-purple-50/50 border border-purple-800/50 hover:border-purple-600/70 transition-all flex items-center justify-between gap-3"
                           >
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                <h4 className="text-xs font-bold text-white">{backend.label}</h4>
-                                <span className="text-[9px] font-mono text-purple-400">#{backend.id}</span>
+                                <h4 className="text-xs font-bold text-[#18113C]">{backend.label}</h4>
+                                <span className="text-[9px] font-mono text-gray-500">#{backend.id}</span>
                               </div>
-                              <p className="text-[11px] text-purple-400">System architecture tier</p>
+                              <p className="text-[11px] text-gray-500">System architecture tier</p>
                             </div>
 
                             <div className="flex items-center gap-3 shrink-0">
@@ -2772,12 +3050,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   {backend.costUSD === 0 ? 'Included ($0)' : `+$${backend.costUSD}`}
                                 </span>
                                 {backend.costUSD > 0 && (
-                                  <span className="text-[10px] text-emerald-400 font-bold block">+₨ {pkrPrice.toLocaleString()}</span>
+                                  <span className="text-[10px] text-emerald-600 font-bold block">+₨ {pkrPrice.toLocaleString()}</span>
                                 )}
                               </div>
                               <button
                                 onClick={() => handleOpenEditBackend(backend)}
-                                className="p-1.5 rounded-xl bg-purple-950 text-purple-300 hover:text-white hover:bg-[#6D28D9] transition-colors"
+                                className="p-1.5 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] hover:bg-[#6D28D9] transition-colors"
                                 title="Edit Backend Tier"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
@@ -2793,65 +3071,65 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               {/* Subtab 5: Currency Rates */}
               {estimatorSubTab === 'currency' && (
-                <div className="p-6 sm:p-8 rounded-3xl bg-[#161033] border border-purple-800/40 space-y-6 max-w-2xl">
+                <div className="p-6 sm:p-8 rounded-3xl bg-white border border-purple-100 space-y-6 max-w-2xl">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-emerald-600" />
                       <span>Currency Conversion Rates</span>
                     </h3>
-                    <p className="text-xs text-purple-300 mt-1">
+                    <p className="text-xs text-gray-500 mt-1">
                       The website primarily displays prices in Pakistani Rupees (₨ PKR) for local clients, as well as GBP (£) and USD ($). Adjust the conversion factor below.
                     </p>
                   </div>
 
                   <form onSubmit={handleSaveCurrencyRates} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/50 space-y-2">
-                        <label className="text-xs font-bold text-emerald-400 flex items-center justify-between">
+                      <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-800/50 space-y-2">
+                        <label className="text-xs font-bold text-emerald-600 flex items-center justify-between">
                           <span>1 USD to PKR (₨)</span>
-                          <span className="text-[10px] font-normal text-purple-300">Pakistan Rupee</span>
+                          <span className="text-[10px] font-normal text-gray-500">Pakistan Rupee</span>
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 font-bold text-sm">₨</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₨</span>
                           <input
                             type="number"
                             step="1"
                             value={currencyForm.pkr}
                             onChange={(e) => setCurrencyForm({ ...currencyForm, pkr: Number(e.target.value) })}
-                            className="w-full pl-8 pr-3 py-2 bg-purple-950/80 border border-purple-700/60 rounded-xl text-white font-extrabold text-sm focus:outline-none focus:border-purple-400"
+                            className="w-full pl-8 pr-3 py-2 bg-purple-100/80 border border-purple-100 rounded-xl text-[#18113C] font-extrabold text-sm focus:outline-none focus:border-purple-400"
                             placeholder="280"
                           />
                         </div>
-                        <p className="text-[10px] text-purple-400">Current active exchange rate for all cost calculations.</p>
+                        <p className="text-[10px] text-gray-500">Current active exchange rate for all cost calculations.</p>
                       </div>
 
-                      <div className="p-4 rounded-2xl bg-[#1C1340] border border-purple-800/50 space-y-2">
+                      <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-800/50 space-y-2">
                         <label className="text-xs font-bold text-[#A78BFA] flex items-center justify-between">
                           <span>1 USD to GBP (£)</span>
-                          <span className="text-[10px] font-normal text-purple-300">British Pound</span>
+                          <span className="text-[10px] font-normal text-gray-500">British Pound</span>
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 font-bold text-sm">£</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">£</span>
                           <input
                             type="number"
                             step="0.01"
                             value={currencyForm.gbp}
                             onChange={(e) => setCurrencyForm({ ...currencyForm, gbp: Number(e.target.value) })}
-                            className="w-full pl-8 pr-3 py-2 bg-purple-950/80 border border-purple-700/60 rounded-xl text-white font-extrabold text-sm focus:outline-none focus:border-purple-400"
+                            className="w-full pl-8 pr-3 py-2 bg-purple-100/80 border border-purple-100 rounded-xl text-[#18113C] font-extrabold text-sm focus:outline-none focus:border-purple-400"
                             placeholder="0.79"
                           />
                         </div>
-                        <p className="text-[10px] text-purple-400">Used when international clients switch to GBP.</p>
+                        <p className="text-[10px] text-gray-500">Used when international clients switch to GBP.</p>
                       </div>
                     </div>
 
                     <div className="pt-2 flex items-center justify-between">
-                      <div className="text-xs text-purple-300">
-                        Example: $850 USD = <strong className="text-emerald-400">₨ {Math.round(850 * (Number(currencyForm.pkr) || 280)).toLocaleString()} PKR</strong>
+                      <div className="text-xs text-gray-500">
+                        Example: $850 USD = <strong className="text-emerald-600">₨ {Math.round(850 * (Number(currencyForm.pkr) || 280)).toLocaleString()} PKR</strong>
                       </div>
                       <button
                         type="submit"
-                        className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold shadow-lg shadow-purple-900/50 flex items-center gap-2 transition-all"
+                        className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold shadow-lg shadow-purple-200 flex items-center gap-2 transition-all"
                       >
                         <Check className="w-4 h-4" />
                         <span>Save Currency Rates</span>
@@ -2862,20 +3140,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
               )}
 
               {/* LIVE SIMULATOR & VERIFICATION COMPONENT */}
-              <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1A123B] to-[#120B29] border-2 border-purple-700/60 shadow-2xl space-y-5">
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-[#1A123B] to-[#120B29] border-2 border-purple-100 shadow-2xl space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-purple-800/50 pb-4">
                   <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-[#18113C] flex items-center gap-2">
                       <Calculator className="w-4 h-4 text-[#A78BFA]" />
                       <span>Live Calculator Simulator (Front-End Verification)</span>
                     </h3>
-                    <p className="text-[11px] text-purple-300">
+                    <p className="text-[11px] text-gray-500">
                       Test any combination below to verify exactly what clients will see on the website.
                     </p>
                   </div>
                   <button
                     onClick={onViewWebsite}
-                    className="px-3.5 py-1.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
+                    className="px-3.5 py-1.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-gray-600 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
                   >
                     <span>Open Live Estimator Page</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -2886,11 +3164,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                   {/* Select Type */}
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-purple-400">Project Type</label>
+                    <label className="text-[10px] uppercase font-bold text-gray-500">Project Type</label>
                     <select
                       value={simType}
                       onChange={(e) => setSimType(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-800/60 text-white font-medium text-xs focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-100 text-[#18113C] font-medium text-xs focus:outline-none"
                     >
                       {estimatorSettings.projectTypes?.map(pt => (
                         <option key={pt.id} value={pt.id}>{pt.name} (${pt.baseUSD})</option>
@@ -2900,11 +3178,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                   {/* Select Scale */}
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-purple-400">Scale / Volume</label>
+                    <label className="text-[10px] uppercase font-bold text-gray-500">Scale / Volume</label>
                     <select
                       value={simScale}
                       onChange={(e) => setSimScale(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-800/60 text-white font-medium text-xs focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-100 text-[#18113C] font-medium text-xs focus:outline-none"
                     >
                       {estimatorSettings.scaleOptions?.map(s => (
                         <option key={s.id} value={s.id}>{s.label} ({s.multiplier}x)</option>
@@ -2914,11 +3192,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                   {/* Select Design */}
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-purple-400">Design Tier</label>
+                    <label className="text-[10px] uppercase font-bold text-gray-500">Design Tier</label>
                     <select
                       value={simDesign}
                       onChange={(e) => setSimDesign(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-800/60 text-white font-medium text-xs focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-100 text-[#18113C] font-medium text-xs focus:outline-none"
                     >
                       {estimatorSettings.designTiers?.map(d => (
                         <option key={d.id} value={d.id}>{d.label} (+${d.costUSD})</option>
@@ -2928,11 +3206,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                   {/* Select Backend */}
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-purple-400">Backend Complexity</label>
+                    <label className="text-[10px] uppercase font-bold text-gray-500">Backend Complexity</label>
                     <select
                       value={simBackend}
                       onChange={(e) => setSimBackend(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-800/60 text-white font-medium text-xs focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-[#140D30] border border-purple-100 text-[#18113C] font-medium text-xs focus:outline-none"
                     >
                       {estimatorSettings.backendOptions?.map(b => (
                         <option key={b.id} value={b.id}>{b.label} (+${b.costUSD})</option>
@@ -2943,7 +3221,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                 {/* Simulator Addons */}
                 <div className="space-y-1.5 pt-1">
-                  <label className="text-[10px] uppercase font-bold text-purple-400">Included Add-ons</label>
+                  <label className="text-[10px] uppercase font-bold text-gray-500">Included Add-ons</label>
                   <div className="flex flex-wrap gap-2">
                     {estimatorSettings.addonOptions?.map(a => {
                       const isChecked = simAddons.includes(a.id);
@@ -2956,8 +3234,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           }}
                           className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                             isChecked
-                              ? 'bg-[#6D28D9] border-[#6D28D9] text-white shadow-xs'
-                              : 'bg-purple-950/60 border-purple-800/60 text-purple-300 hover:border-purple-600'
+                              ? 'bg-[#6D28D9] border-[#6D28D9] text-[#18113C] shadow-xs'
+                              : 'bg-purple-100/60 border-purple-100 text-gray-500 hover:border-purple-600'
                           }`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center ${
@@ -2994,32 +3272,32 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   const calculatedWeeks = Math.max(2, Math.round(selType.weeks + selScale.weeksDelta));
 
                   return (
-                    <div className="p-4 rounded-2xl bg-[#140D30] border border-purple-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+                    <div className="p-4 rounded-2xl bg-[#140D30] border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
                       <div className="flex items-center gap-6">
                         <div>
-                          <span className="text-[10px] text-purple-400 block font-medium">Estimated PKR (Website Primary)</span>
-                          <span className="text-2xl font-display font-extrabold text-emerald-400 tracking-tight">
+                          <span className="text-[10px] text-gray-400 block font-medium">Estimated PKR (Website Primary)</span>
+                          <span className="text-2xl font-display font-extrabold text-emerald-600 tracking-tight">
                             ₨ {calculatedPKR.toLocaleString()}
                           </span>
                         </div>
                         <div className="border-l border-purple-800/80 pl-6">
-                          <span className="text-[10px] text-purple-400 block font-medium">Base USD Price</span>
+                          <span className="text-[10px] text-gray-400 block font-medium">Base USD Price</span>
                           <span className="text-xl font-display font-bold text-[#A78BFA]">
                             ${calculatedUSD.toLocaleString()}
                           </span>
                         </div>
                         <div className="border-l border-purple-800/80 pl-6">
-                          <span className="text-[10px] text-purple-400 block font-medium">Estimated Delivery</span>
-                          <span className="text-sm font-bold text-white flex items-center gap-1 mt-0.5">
-                            <Clock className="w-3.5 h-3.5 text-purple-400" />
+                          <span className="text-[10px] text-gray-400 block font-medium">Estimated Delivery</span>
+                          <span className="text-sm font-bold text-[#18113C] flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3.5 h-3.5 text-gray-500" />
                             ~{calculatedWeeks} Weeks
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-purple-300">
-                          Formula: <code className="text-purple-200 bg-purple-950 px-1.5 py-0.5 rounded">(${selType.baseUSD} × {selScale.multiplier}) + ${selDesign.costUSD} + ${selBackend.costUSD} + ${addonsSum}</code>
+                        <span className="text-[11px] text-gray-500">
+                          Formula: <code className="text-gray-600 bg-purple-100 px-1.5 py-0.5 rounded">(${selType.baseUSD} × {selScale.multiplier}) + ${selDesign.costUSD} + ${selBackend.costUSD} + ${addonsSum}</code>
                         </span>
                       </div>
                     </div>
@@ -3037,14 +3315,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
               
               {/* Toast for saved actions */}
               {aboutSavedToast && (
-                <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 flex items-center justify-between shadow-xl animate-fadeIn">
+                <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-500/60 text-emerald-600 flex items-center justify-between shadow-xl animate-fadeIn">
                   <div className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     <span className="text-xs font-bold">{aboutSavedToast}</span>
                   </div>
                   <button 
                     onClick={() => setAboutSavedToast(null)}
-                    className="text-emerald-400 hover:text-emerald-200"
+                    className="text-emerald-600 hover:text-emerald-200"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -3055,26 +3333,26 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h1 className="text-2xl font-display font-bold text-white">About Us Content Manager</h1>
-                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50 font-bold">
+                    <h1 className="text-2xl font-display font-bold text-[#18113C]">About Us Content Manager</h1>
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-50 text-gray-500 border border-purple-700/50 font-bold">
                       Live Dynamic CMS
                     </span>
                   </div>
-                  <p className="text-xs text-purple-300 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Manage the hero headline, dual offices (Lahore HQ &amp; London Liaison), leadership team, milestones timeline, and engineering principles. All edits update instantly on the website.
                   </p>
                 </div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <button
                     onClick={onViewWebsite}
-                    className="px-3.5 py-2 rounded-xl bg-purple-900/40 hover:bg-purple-900/70 border border-purple-700/50 text-purple-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all"
+                    className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-200 border border-purple-700/50 text-gray-600 hover:text-[#18113C] text-xs font-bold flex items-center gap-1.5 transition-all"
                   >
-                    <Eye className="w-4 h-4 text-purple-300" />
+                    <Eye className="w-4 h-4 text-gray-500" />
                     <span>View on Website</span>
                   </button>
                   <button
                     onClick={handleResetAboutDefaults}
-                    className="px-3 py-2 rounded-xl bg-[#1A1338] border border-purple-800/60 hover:border-purple-600 text-purple-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all"
+                    className="px-3 py-2 rounded-xl bg-purple-50 border border-purple-100 hover:border-purple-600 text-gray-500 hover:text-[#18113C] text-xs font-bold flex items-center gap-1.5 transition-all"
                     title="Reset all About Us content to original defaults"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -3084,13 +3362,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </div>
 
               {/* Subtabs Bar */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-purple-900/50">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-purple-100">
                 <button
                   onClick={() => setAboutSubTab('hero')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     aboutSubTab === 'hero'
-                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/50'
-                      : 'bg-[#161033] text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200'
+                      : 'bg-white text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -3100,8 +3378,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   onClick={() => setAboutSubTab('offices')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     aboutSubTab === 'offices'
-                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/50'
-                      : 'bg-[#161033] text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200'
+                      : 'bg-white text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5" />
@@ -3111,8 +3389,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   onClick={() => setAboutSubTab('leadership')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     aboutSubTab === 'leadership'
-                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/50'
-                      : 'bg-[#161033] text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200'
+                      : 'bg-white text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -3122,8 +3400,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   onClick={() => setAboutSubTab('milestones')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     aboutSubTab === 'milestones'
-                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/50'
-                      : 'bg-[#161033] text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200'
+                      : 'bg-white text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <Calendar className="w-3.5 h-3.5" />
@@ -3133,8 +3411,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   onClick={() => setAboutSubTab('principles')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     aboutSubTab === 'principles'
-                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/50'
-                      : 'bg-[#161033] text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200'
+                      : 'bg-white text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -3144,8 +3422,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   onClick={() => setAboutSubTab('cta')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
                     aboutSubTab === 'cta'
-                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-900/50'
-                      : 'bg-[#161033] text-purple-300 hover:text-white hover:bg-purple-900/40'
+                      ? 'bg-[#6D28D9] text-white shadow-lg shadow-purple-200'
+                      : 'bg-white text-gray-500 hover:text-[#18113C] hover:bg-purple-50'
                   }`}
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -3158,61 +3436,61 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   
                   {/* Edit Form */}
-                  <div className="lg:col-span-7 bg-[#161033] border border-purple-800/40 rounded-3xl p-6 shadow-xl space-y-5">
-                    <div className="flex items-center justify-between border-b border-purple-800/40 pb-3">
+                  <div className="lg:col-span-7 bg-white border border-purple-100 rounded-3xl p-6 shadow-xl space-y-5">
+                    <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                       <div>
-                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-[#A78BFA]" />
                           <span>Edit Hero Headline &amp; Mission</span>
                         </h3>
-                        <p className="text-xs text-purple-300 mt-0.5">Controls the top of the About Us page</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Controls the top of the About Us page</p>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-gray-500 font-bold">
                         Front-End Sync
                       </span>
                     </div>
 
                     <form onSubmit={handleSaveHero} className="space-y-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-purple-200 block">Top Pill Badge Text</label>
+                        <label className="text-xs font-bold text-gray-600 block">Top Pill Badge Text</label>
                         <input
                           type="text"
                           required
                           value={heroForm.badge}
                           onChange={(e) => setHeroForm({ ...heroForm, badge: e.target.value })}
                           placeholder="e.g. About WeVersity • Since 2016"
-                          className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white placeholder-purple-400 focus:outline-none focus:border-purple-400"
+                          className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] placeholder-gray-400 focus:outline-none focus:border-purple-400"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-purple-200 block">Main Headline / Title</label>
+                        <label className="text-xs font-bold text-gray-600 block">Main Headline / Title</label>
                         <input
                           type="text"
                           required
                           value={heroForm.title}
                           onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
                           placeholder="e.g. Software Craftsmen Who Believe in Code That Works."
-                          className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white placeholder-purple-400 focus:outline-none focus:border-purple-400 font-bold"
+                          className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] placeholder-gray-400 focus:outline-none focus:border-purple-400 font-bold"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-purple-200 block">Mission Paragraph / Subtitle</label>
+                        <label className="text-xs font-bold text-gray-600 block">Mission Paragraph / Subtitle</label>
                         <textarea
                           rows={4}
                           required
                           value={heroForm.subtitle}
                           onChange={(e) => setHeroForm({ ...heroForm, subtitle: e.target.value })}
                           placeholder="Operating from Lahore, Pakistan with international liaison in London, UK..."
-                          className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white placeholder-purple-400 focus:outline-none focus:border-purple-400 leading-relaxed"
+                          className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] placeholder-gray-400 focus:outline-none focus:border-purple-400 leading-relaxed"
                         />
                       </div>
 
                       <div className="pt-2 flex items-center justify-end">
                         <button
                           type="submit"
-                          className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-900/50 transition-all"
+                          className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 transition-all"
                         >
                           <Save className="w-4 h-4" />
                           <span>Save &amp; Update Live Website</span>
@@ -3222,14 +3500,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   </div>
 
                   {/* Live Visual Preview */}
-                  <div className="lg:col-span-5 bg-[#161033] border border-purple-800/40 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                  <div className="lg:col-span-5 bg-white border border-purple-100 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between border-b border-purple-800/40 pb-3 mb-4">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-2">
-                          <Eye className="w-3.5 h-3.5 text-purple-400" />
+                      <div className="flex items-center justify-between border-b border-purple-100 pb-3 mb-4">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                          <Eye className="w-3.5 h-3.5 text-gray-500" />
                           <span>Live Website Hero Preview</span>
                         </h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-400 font-bold border border-emerald-800/40">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-bold border border-emerald-800/40">
                           Real-time
                         </span>
                       </div>
@@ -3248,8 +3526,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-purple-800/40 text-[11px] text-purple-300">
-                      Changes saved here immediately reflect in <code className="bg-purple-950 px-1 py-0.5 rounded text-purple-200">AboutView.tsx</code> for all website visitors.
+                    <div className="pt-4 border-t border-purple-100 text-[11px] text-gray-500">
+                      Changes saved here immediately reflect in <code className="bg-purple-100 px-1 py-0.5 rounded text-gray-600">AboutView.tsx</code> for all website visitors.
                     </div>
                   </div>
 
@@ -3261,11 +3539,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-[#A78BFA]" />
                         <span>Dual Office Presence: Lahore HQ &amp; London Liaison</span>
                       </h3>
-                      <p className="text-xs text-purple-300 mt-0.5">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Update physical addresses, phone numbers, operating hours, and focus disciplines.
                       </p>
                     </div>
@@ -3275,13 +3553,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       
                       {/* Lahore HQ Box */}
-                      <div className="bg-[#161033] border border-purple-800/40 rounded-3xl p-6 shadow-xl space-y-4">
-                        <div className="flex items-center justify-between border-b border-purple-800/40 pb-3">
+                      <div className="bg-white border border-purple-100 rounded-3xl p-6 shadow-xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
-                            <h4 className="text-sm font-bold text-white">Lahore Headquarters</h4>
+                            <h4 className="text-sm font-bold text-[#18113C]">Lahore Headquarters</h4>
                           </div>
-                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700/50 font-bold">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-50 text-gray-500 border border-purple-700/50 font-bold">
                             Pakistan
                           </span>
                         </div>
@@ -3289,7 +3567,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">Office Title</label>
+                              <label className="text-[11px] font-bold text-gray-600">Office Title</label>
                               <input
                                 type="text"
                                 required
@@ -3298,11 +3576,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   lahore: { ...officesForm.lahore, title: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">City / Badge</label>
+                              <label className="text-[11px] font-bold text-gray-600">City / Badge</label>
                               <input
                                 type="text"
                                 required
@@ -3311,13 +3589,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   lahore: { ...officesForm.lahore, city: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-purple-200">Header Subtitle / Tag</label>
+                            <label className="text-[11px] font-bold text-gray-600">Header Subtitle / Tag</label>
                             <input
                               type="text"
                               value={officesForm.lahore.label}
@@ -3325,12 +3603,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 ...officesForm,
                                 lahore: { ...officesForm.lahore, label: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                              className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                             />
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-purple-200">Full Physical Address</label>
+                            <label className="text-[11px] font-bold text-gray-600">Full Physical Address</label>
                             <textarea
                               rows={2}
                               required
@@ -3339,13 +3617,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 ...officesForm,
                                 lahore: { ...officesForm.lahore, address: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                              className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                             />
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">Direct Phone</label>
+                              <label className="text-[11px] font-bold text-gray-600">Direct Phone</label>
                               <input
                                 type="text"
                                 required
@@ -3354,11 +3632,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   lahore: { ...officesForm.lahore, phone: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">Working Hours</label>
+                              <label className="text-[11px] font-bold text-gray-600">Working Hours</label>
                               <input
                                 type="text"
                                 required
@@ -3367,13 +3645,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   lahore: { ...officesForm.lahore, hours: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-purple-200">Core Disciplines / Specialties</label>
+                            <label className="text-[11px] font-bold text-gray-600">Core Disciplines / Specialties</label>
                             <input
                               type="text"
                               value={officesForm.lahore.specialtyValue}
@@ -3381,18 +3659,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 ...officesForm,
                                 lahore: { ...officesForm.lahore, specialtyValue: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white font-medium"
+                              className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] font-medium"
                             />
                           </div>
                         </div>
                       </div>
 
                       {/* London UK Office Box */}
-                      <div className="bg-[#161033] border border-purple-800/40 rounded-3xl p-6 shadow-xl space-y-4">
-                        <div className="flex items-center justify-between border-b border-purple-800/40 pb-3">
+                      <div className="bg-white border border-purple-100 rounded-3xl p-6 shadow-xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                            <h4 className="text-sm font-bold text-white">United Kingdom Liaison</h4>
+                            <h4 className="text-sm font-bold text-[#18113C]">United Kingdom Liaison</h4>
                           </div>
                           <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-900/60 text-indigo-300 border border-indigo-700/50 font-bold">
                             London, UK
@@ -3402,7 +3680,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">Office Title</label>
+                              <label className="text-[11px] font-bold text-gray-600">Office Title</label>
                               <input
                                 type="text"
                                 required
@@ -3411,11 +3689,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   london: { ...officesForm.london, title: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">City / Badge</label>
+                              <label className="text-[11px] font-bold text-gray-600">City / Badge</label>
                               <input
                                 type="text"
                                 required
@@ -3424,13 +3702,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   london: { ...officesForm.london, city: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-purple-200">Header Subtitle / Tag</label>
+                            <label className="text-[11px] font-bold text-gray-600">Header Subtitle / Tag</label>
                             <input
                               type="text"
                               value={officesForm.london.label}
@@ -3438,12 +3716,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 ...officesForm,
                                 london: { ...officesForm.london, label: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                              className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                             />
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-purple-200">Full Physical Address</label>
+                            <label className="text-[11px] font-bold text-gray-600">Full Physical Address</label>
                             <textarea
                               rows={2}
                               required
@@ -3452,13 +3730,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 ...officesForm,
                                 london: { ...officesForm.london, address: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                              className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                             />
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">UK Direct Phone</label>
+                              <label className="text-[11px] font-bold text-gray-600">UK Direct Phone</label>
                               <input
                                 type="text"
                                 required
@@ -3467,11 +3745,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   london: { ...officesForm.london, phone: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-purple-200">Working Hours</label>
+                              <label className="text-[11px] font-bold text-gray-600">Working Hours</label>
                               <input
                                 type="text"
                                 required
@@ -3480,13 +3758,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                   ...officesForm,
                                   london: { ...officesForm.london, hours: e.target.value }
                                 })}
-                                className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                                className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[11px] font-bold text-purple-200">Core Focus / Specialties</label>
+                            <label className="text-[11px] font-bold text-gray-600">Core Focus / Specialties</label>
                             <input
                               type="text"
                               value={officesForm.london.specialtyValue}
@@ -3494,7 +3772,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                                 ...officesForm,
                                 london: { ...officesForm.london, specialtyValue: e.target.value }
                               })}
-                              className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white font-medium"
+                              className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] font-medium"
                             />
                           </div>
                         </div>
@@ -3505,7 +3783,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <div className="flex justify-end">
                       <button
                         type="submit"
-                        className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-900/50 transition-all"
+                        className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 transition-all"
                       >
                         <Save className="w-4 h-4" />
                         <span>Save Office Presence &amp; Push to Website</span>
@@ -3520,17 +3798,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
                         <Users className="w-4 h-4 text-[#A78BFA]" />
                         <span>Leadership &amp; Engineering Leads ({aboutState.leadership.length})</span>
                       </h3>
-                      <p className="text-xs text-purple-300 mt-0.5">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Manage company founders, directors, lead engineers, and specialists.
                       </p>
                     </div>
                     <button
                       onClick={handleOpenCreateLeader}
-                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-900/50 self-start"
+                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-200 self-start"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Team Member</span>
@@ -3541,7 +3819,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     {aboutState.leadership.map((leader) => (
                       <div
                         key={leader.id}
-                        className="bg-[#161033] border border-purple-800/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-600 transition-all group"
+                        className="bg-white border border-purple-100 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-600 transition-all group"
                       >
                         <div className="space-y-3">
                           <div className="flex items-center gap-3">
@@ -3554,27 +3832,27 @@ export const AdminView: React.FC<AdminViewProps> = ({
                               }}
                             />
                             <div className="min-w-0">
-                              <h4 className="text-sm font-bold text-white truncate">{leader.name}</h4>
+                              <h4 className="text-sm font-bold text-[#18113C] truncate">{leader.name}</h4>
                               <span className="text-[11px] text-[#A78BFA] font-medium block truncate">{leader.role}</span>
                             </div>
                           </div>
 
-                          <p className="text-xs text-purple-300/90 leading-relaxed line-clamp-3">
+                          <p className="text-xs text-gray-500/90 leading-relaxed line-clamp-3">
                             {leader.bio}
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 pt-4 mt-3 border-t border-purple-900/50">
+                        <div className="flex items-center justify-end gap-2 pt-4 mt-3 border-t border-purple-100">
                           <button
                             onClick={() => handleOpenEditLeader(leader)}
-                            className="p-1.5 rounded-lg bg-purple-950/70 hover:bg-purple-900 text-purple-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg bg-purple-100/70 hover:bg-purple-900 text-gray-500 hover:text-[#18113C] transition-colors"
                             title="Edit team member"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmAbout({ type: 'leader', id: leader.id, name: leader.name })}
-                            className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg bg-rose-50/60 hover:bg-rose-900 text-rose-300 hover:text-[#18113C] transition-colors"
                             title="Delete team member"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -3591,17 +3869,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-[#A78BFA]" />
                         <span>A Decade of Growth Milestones ({aboutState.milestones.length})</span>
                       </h3>
-                      <p className="text-xs text-purple-300 mt-0.5">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         Chronological journey items shown on the website timeline.
                       </p>
                     </div>
                     <button
                       onClick={handleOpenCreateMilestone}
-                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-900/50 self-start"
+                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-200 self-start"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Milestone</span>
@@ -3612,34 +3890,34 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     {aboutState.milestones.map((m) => (
                       <div
                         key={m.id}
-                        className="bg-[#161033] border border-purple-800/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-600 transition-all"
+                        className="bg-white border border-purple-100 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-600 transition-all"
                       >
                         <div className="space-y-2.5">
                           <div className="flex items-center justify-between">
                             <span className="text-xl font-display font-extrabold text-[#A78BFA]">
                               {m.year}
                             </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-300 font-bold">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-gray-500 font-bold">
                               Milestone
                             </span>
                           </div>
-                          <h4 className="text-sm font-bold text-white">{m.title}</h4>
-                          <p className="text-xs text-purple-300 leading-relaxed">
+                          <h4 className="text-sm font-bold text-[#18113C]">{m.title}</h4>
+                          <p className="text-xs text-gray-500 leading-relaxed">
                             {m.desc}
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-purple-900/50">
+                        <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-purple-100">
                           <button
                             onClick={() => handleOpenEditMilestone(m)}
-                            className="p-1.5 rounded-lg bg-purple-950/70 hover:bg-purple-900 text-purple-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg bg-purple-100/70 hover:bg-purple-900 text-gray-500 hover:text-[#18113C] transition-colors"
                             title="Edit milestone"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmAbout({ type: 'milestone', id: m.id, name: `${m.year} - ${m.title}` })}
-                            className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg bg-rose-50/60 hover:bg-rose-900 text-rose-300 hover:text-[#18113C] transition-colors"
                             title="Delete milestone"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -3654,24 +3932,33 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {/* TAB 5: ENGINEERING PRINCIPLES */}
               {aboutSubTab === 'principles' && (
                 <div className="space-y-5">
-                  <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#A78BFA]" />
-                      <span>Our Engineering Principles ({aboutState.principles.length})</span>
-                    </h3>
-                    <p className="text-xs text-purple-300 mt-0.5">
-                      The core values and software development manifesto highlighted on the About Us page.
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-[#A78BFA]" />
+                        <span>Our Engineering Principles ({aboutState.principles.length})</span>
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        The core values and software development manifesto highlighted on the About Us page.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleOpenCreatePrinciple}
+                      className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200 transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Principle</span>
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {aboutState.principles.map((p) => (
                       <div
                         key={p.id}
-                        className="bg-[#161033] border border-purple-800/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-500 transition-all"
+                        className="bg-white border border-purple-100 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-purple-500 transition-all"
                       >
                         <div className="space-y-3">
-                          <div className="w-10 h-10 rounded-xl bg-purple-900/60 border border-purple-700/50 flex items-center justify-center text-purple-300">
+                          <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-700/50 flex items-center justify-center text-gray-500">
                             {p.icon === 'Code2' && <Code2 className="w-5 h-5" />}
                             {p.icon === 'ShieldCheck' && <ShieldCheck className="w-5 h-5" />}
                             {p.icon === 'Cpu' && <Cpu className="w-5 h-5" />}
@@ -3679,18 +3966,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             {p.icon === 'Sparkles' && <Sparkles className="w-5 h-5" />}
                           </div>
                           <div>
-                            <span className="text-[10px] uppercase tracking-wider text-purple-400 font-bold block mb-1">Principle</span>
-                            <h4 className="text-sm font-bold text-white">{p.title}</h4>
+                            <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold block mb-1">Principle</span>
+                            <h4 className="text-sm font-bold text-[#18113C]">{p.title}</h4>
                           </div>
-                          <p className="text-xs text-purple-300 leading-relaxed">
+                          <p className="text-xs text-gray-500 leading-relaxed">
                             {p.desc}
                           </p>
                         </div>
 
-                        <div className="pt-4 mt-2 border-t border-purple-900/50 flex justify-end">
+                        <div className="pt-4 mt-2 border-t border-purple-100 flex justify-end">
                           <button
                             onClick={() => handleOpenEditPrinciple(p)}
-                            className="px-3 py-1.5 rounded-lg bg-purple-900/50 hover:bg-purple-900 text-purple-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-gray-600 text-xs font-bold flex items-center gap-1.5 transition-colors"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit Value</span>
@@ -3707,58 +3994,58 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   
                   {/* Edit Form */}
-                  <div className="lg:col-span-7 bg-[#161033] border border-purple-800/40 rounded-3xl p-6 shadow-xl space-y-5">
-                    <div className="flex items-center justify-between border-b border-purple-800/40 pb-3">
+                  <div className="lg:col-span-7 bg-white border border-purple-100 rounded-3xl p-6 shadow-xl space-y-5">
+                    <div className="flex items-center justify-between border-b border-purple-100 pb-3">
                       <div>
-                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <h3 className="text-base font-bold text-[#18113C] flex items-center gap-2">
                           <ArrowRight className="w-4 h-4 text-[#A78BFA]" />
                           <span>Edit Bottom CTA Banner</span>
                         </h3>
-                        <p className="text-xs text-purple-300 mt-0.5">Controls the bottom conversion callout on About Us</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Controls the bottom conversion callout on About Us</p>
                       </div>
                     </div>
 
                     <form onSubmit={handleSaveCTA} className="space-y-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-purple-200 block">Callout Title</label>
+                        <label className="text-xs font-bold text-gray-600 block">Callout Title</label>
                         <input
                           type="text"
                           required
                           value={ctaForm.title}
                           onChange={(e) => setCtaForm({ ...ctaForm, title: e.target.value })}
                           placeholder="Meet the engineers building the next generation of web software."
-                          className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white font-bold"
+                          className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] font-bold"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-purple-200 block">Callout Description</label>
+                        <label className="text-xs font-bold text-gray-600 block">Callout Description</label>
                         <textarea
                           rows={3}
                           required
                           value={ctaForm.desc}
                           onChange={(e) => setCtaForm({ ...ctaForm, desc: e.target.value })}
                           placeholder="Whether you need an on-site consultation at our Lahore office or a virtual discovery session from London..."
-                          className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white leading-relaxed"
+                          className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] leading-relaxed"
                         />
                       </div>
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-purple-200 block">Button Label</label>
+                        <label className="text-xs font-bold text-gray-600 block">Button Label</label>
                         <input
                           type="text"
                           required
                           value={ctaForm.buttonText}
                           onChange={(e) => setCtaForm({ ...ctaForm, buttonText: e.target.value })}
                           placeholder="Book a Free Technical Discovery Call"
-                          className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-xs text-white"
+                          className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C]"
                         />
                       </div>
 
                       <div className="pt-2 flex items-center justify-end">
                         <button
                           type="submit"
-                          className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-900/50 transition-all"
+                          className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 transition-all"
                         >
                           <Save className="w-4 h-4" />
                           <span>Save &amp; Update CTA Banner</span>
@@ -3768,11 +4055,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   </div>
 
                   {/* Live Visual Preview */}
-                  <div className="lg:col-span-5 bg-[#161033] border border-purple-800/40 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                  <div className="lg:col-span-5 bg-white border border-purple-100 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between border-b border-purple-800/40 pb-3 mb-4">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-2">
-                          <Eye className="w-3.5 h-3.5 text-purple-400" />
+                      <div className="flex items-center justify-between border-b border-purple-100 pb-3 mb-4">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                          <Eye className="w-3.5 h-3.5 text-gray-500" />
                           <span>Live Banner Preview</span>
                         </h4>
                       </div>
@@ -3788,13 +4075,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           type="button"
                           className="px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-[#6D28D9] shadow-md shadow-purple-600/30 inline-flex items-center gap-1.5"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+                          <Sparkles className="w-3.5 h-3.5 text-white" />
                           <span>{ctaForm.buttonText}</span>
                         </button>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-purple-800/40 text-[11px] text-purple-300">
+                    <div className="pt-4 border-t border-purple-100 text-[11px] text-gray-500">
                       When clicked, this button triggers the quote &amp; technical discovery booking flow.
                     </div>
                   </div>
@@ -3810,8 +4097,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-display font-bold text-white">Teachers Manager</h1>
-                  <p className="text-xs text-purple-300 mt-1">Add, edit, or remove faculty members from the website</p>
+                  <h1 className="text-2xl font-display font-bold text-[#18113C]">Teachers Manager</h1>
+                  <p className="text-xs text-gray-500 mt-1">Add, edit, or remove faculty members from the website</p>
                 </div>
                 <button
                   onClick={() => {
@@ -3822,14 +4109,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       role: '',
                       specialization: '',
                       category: 'web',
+                      categoryLabel: 'Web Development',
                       experience: '',
                       studentsCount: '',
                       bio: '',
-                      avatar: '/assets/aistudio/image_f804651e.png'
+                      avatar: '/assets/aistudio/image_f804651e.png',
+                      rating: 5.0,
+                      reviewsCount: 0,
+                      primaryCourse: '',
+                      skills: '',
+                      highlights: '',
+                      socials: { linkedin: '', github: '' }
                     });
                     setIsTeacherModalOpen(true);
                   }}
-                  className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-900/50"
+                  className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add New Teacher</span>
@@ -3838,46 +4132,46 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {teachersList.map((teacher) => (
-                  <div key={teacher.id} className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 hover:border-purple-600 transition-all space-y-4 group">
+                  <div key={teacher.id} className="p-5 rounded-2xl bg-white border border-purple-100 hover:border-purple-600 transition-all space-y-4 group">
                     <div className="flex items-center gap-4">
                       <img src={teacher.avatar} alt={teacher.name} className="w-16 h-16 rounded-full object-cover border-2 border-purple-500/30" />
                       <div className="min-w-0">
-                        <h3 className="font-bold text-white truncate">{teacher.name}</h3>
-                        <p className="text-[11px] text-purple-400 font-medium truncate">{teacher.role}</p>
+                        <h3 className="font-bold text-[#18113C] truncate">{teacher.name}</h3>
+                        <p className="text-[11px] text-gray-400 font-medium truncate">{teacher.role}</p>
                         <div className="flex items-center gap-1.5 mt-1">
-                          <span className="px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/60 text-[9px] font-bold text-purple-300 uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded-md bg-purple-100/80 border border-purple-100 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
                             {teacher.category}
                           </span>
                         </div>
                       </div>
                     </div>
                     
-                    <p className="text-[11px] text-purple-200/80 line-clamp-2 leading-relaxed h-8">
+                    <p className="text-[11px] text-gray-600/80 line-clamp-2 leading-relaxed h-8">
                       {teacher.bio}
                     </p>
 
-                    <div className="pt-4 border-t border-purple-900/40 flex items-center justify-between">
-                      <div className="text-[10px] text-purple-400">
-                        <span className="font-bold text-white">{teacher.experience}</span> Experience
+                    <div className="pt-4 border-t border-purple-100 flex items-center justify-between">
+                      <div className="text-[10px] text-gray-500">
+                        <span className="font-bold text-[#18113C]">{teacher.experience}</span> Experience
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
                             setEditingTeacherId(teacher.id);
-                            setTeacherForm(teacher);
+                            setTeacherForm({
+                              ...teacher,
+                              skills: Array.isArray(teacher.skills) ? teacher.skills.join(', ') : teacher.skills,
+                              highlights: Array.isArray(teacher.highlights) ? teacher.highlights.join(', ') : teacher.highlights
+                            });
                             setIsTeacherModalOpen(true);
                           }}
-                          className="p-2 rounded-lg bg-purple-900/40 text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-all"
+                          className="p-2 rounded-lg bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-white transition-all"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Remove ${teacher.name} from teachers list?`)) {
-                              handleDeleteTeacher(teacher.id);
-                            }
-                          }}
-                          className="p-2 rounded-lg bg-rose-950/40 text-rose-400 hover:bg-rose-600 hover:text-white transition-all"
+                          onClick={() => setDeleteConfirm({ id: teacher.id, name: teacher.name, type: 'teacher' })}
+                          className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -3894,8 +4188,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-display font-bold text-white">Live Sessions Manager</h1>
-                  <p className="text-xs text-purple-300 mt-1">Manage upcoming webinars and live workshop schedules</p>
+                  <h1 className="text-2xl font-display font-bold text-[#18113C]">Live Sessions Manager</h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage upcoming webinars and live workshop schedules</p>
                 </div>
                 <button
                   onClick={() => {
@@ -3909,11 +4203,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       duration: '',
                       status: 'Upcoming',
                       link: '',
-                      thumbnail: '/assets/aistudio/image_85a3982c.png'
+                      thumbnail: '/assets/aistudio/image_85a3982c.png',
+                      startTime: ''
                     });
                     setIsSessionModalOpen(true);
                   }}
-                  className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-900/50"
+                  className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Schedule Session</span>
@@ -3922,7 +4217,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {sessionsList.map((session) => (
-                  <div key={session.id} className="p-5 rounded-2xl bg-[#161033] border border-purple-800/40 flex gap-5 hover:border-purple-600 transition-all">
+                  <div key={session.id} className="p-5 rounded-2xl bg-white border border-purple-100 flex gap-5 hover:border-purple-600 transition-all">
                     <div className="w-32 h-32 rounded-xl overflow-hidden shrink-0 border border-purple-700/30">
                       <img src={session.thumbnail} className="w-full h-full object-cover" alt="" />
                     </div>
@@ -3930,15 +4225,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
-                            session.status === 'Live' ? 'bg-rose-600 animate-pulse' : 'bg-purple-900/60 text-purple-300'
+                            session.status === 'Live' ? 'bg-rose-600 animate-pulse' : 'bg-purple-50 text-gray-500'
                           }`}>
                             {session.status}
                           </span>
-                          <span className="text-[10px] text-purple-400 font-bold">{session.date}</span>
+                          <span className="text-[10px] text-gray-400 font-bold">{session.date}</span>
                         </div>
-                        <h3 className="font-bold text-sm text-white truncate">{session.title}</h3>
-                        <p className="text-[10px] text-purple-300 mt-1">Instructor: <span className="text-white">{session.instructor}</span></p>
-                        <div className="flex items-center gap-3 mt-2 text-[10px] text-purple-400">
+                        <h3 className="font-bold text-sm text-[#18113C] truncate">{session.title}</h3>
+                        <p className="text-[10px] text-gray-500 mt-1">Instructor: <span className="text-[#18113C]">{session.instructor}</span></p>
+                        <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {session.time}</span>
                           <span className="flex items-center gap-1"><Play className="w-3 h-3" /> {session.duration}</span>
                         </div>
@@ -3950,13 +4245,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             setSessionForm(session);
                             setIsSessionModalOpen(true);
                           }}
-                          className="p-1.5 rounded-lg bg-purple-900/40 text-purple-300 hover:bg-[#6D28D9] hover:text-white"
+                          className="p-1.5 rounded-lg bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-[#18113C]"
                         >
                           <Edit3 className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => handleDeleteSession(session.id)}
-                          className="p-1.5 rounded-lg bg-rose-950/40 text-rose-400 hover:bg-rose-600 hover:text-white"
+                          onClick={() => setDeleteConfirm({ id: session.id, name: session.title, type: 'session' })}
+                          className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-[#18113C]"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -3968,69 +4263,221 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
           )}
 
+          {/* TAB: CONTESTS MANAGER */}
+          {currentTab === 'contests' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-[#18113C]">Contests & Challenges</h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage hackathons, design challenges, and rewards</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingContestId(null);
+                    setContestForm({
+                      id: '',
+                      title: '',
+                      description: '',
+                      date: '',
+                      prize: '',
+                      status: 'Upcoming',
+                      image: '/assets/aistudio/hero_illustration_full.png'
+                    });
+                    setIsContestModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>New Contest</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {contestsList.map((contest) => (
+                  <div key={contest.id} className="p-4 rounded-2xl bg-white border border-purple-100 hover:border-purple-600 transition-all space-y-4">
+                    <div className="h-32 rounded-xl overflow-hidden border border-purple-700/30">
+                      <img src={contest.image} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                          contest.status === 'Live' ? 'bg-rose-600' : 'bg-purple-50 text-gray-500'
+                        }`}>
+                          {contest.status}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-bold">{contest.date}</span>
+                      </div>
+                      <h3 className="font-bold text-sm text-[#18113C] truncate">{contest.title}</h3>
+                      <p className="text-[10px] text-gray-500 line-clamp-2">{contest.description}</p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-amber-500 font-bold">
+                        <Award className="w-3 h-3" />
+                        <span>Prize: {contest.prize}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-purple-100">
+                      <button
+                        onClick={() => {
+                          setEditingContestId(contest.id);
+                          setContestForm(contest);
+                          setIsContestModalOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-[#18113C]"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                      {contest.link && (
+                        <button
+                          onClick={() => window.open(contest.link, '_blank')}
+                          className="px-2 py-1 rounded-lg bg-[#6D28D9] text-white text-[10px] font-bold hover:bg-[#5B21B6]"
+                        >
+                          View Details
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setDeleteConfirm({ id: contest.id, name: contest.title, type: 'contest' })}
+                        className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-[#18113C]"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: TEAM PAGES MANAGER */}
+          {currentTab === 'team_pages' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-display font-bold text-[#18113C]">Team Pages Manager</h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage public profiles of WeVersity team members</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTeamMemberId(null);
+                    setTeamForm({
+                      id: '',
+                      name: '',
+                      role: '',
+                      department: 'engineering',
+                      departmentLabel: 'Full-Stack Engineering',
+                      location: 'Lahore, Pakistan',
+                      experience: '',
+                      avatar: '/assets/aistudio/image_f804651e.png',
+                      bio: '',
+                      keyAchievement: '',
+                      techStack: [],
+                      socials: {}
+                    });
+                    setIsTeamModalOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Member</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {teamList.map((member) => (
+                  <div key={member.id} className="p-5 rounded-2xl bg-white border border-purple-100 hover:border-purple-600 transition-all space-y-4">
+                    <div className="flex items-center gap-4">
+                      <img src={member.imageUrl || member.avatar} alt={member.name} className="w-14 h-14 rounded-xl object-cover border border-purple-500/30" />
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-[#18113C] truncate">{member.name}</h3>
+                        <p className="text-[10px] text-gray-400 font-medium truncate">{member.role}</p>
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{member.departmentLabel}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-purple-100">
+                      <button
+                        onClick={() => {
+                          setEditingTeamMemberId(member.id);
+                          setTeamForm(member);
+                          setIsTeamModalOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg bg-purple-50 text-gray-500 hover:bg-[#6D28D9] hover:text-[#18113C]"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm({ id: member.id, name: member.name, type: 'team' })}
+                        className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-[#18113C]"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* TAB: CONTACT & COMPANY INFO */}
           {currentTab === 'contact' && (
             <div className="space-y-6 max-w-4xl">
               <div>
-                <h1 className="text-2xl font-display font-bold text-white">Company Identity &amp; Contact</h1>
-                <p className="text-xs text-purple-300 mt-1">Update brand logo, support emails, and global contact numbers</p>
+                <h1 className="text-2xl font-display font-bold text-[#18113C]">Company Identity &amp; Contact</h1>
+                <p className="text-xs text-gray-500 mt-1">Update brand logo, support emails, and global contact numbers</p>
               </div>
 
-              <div className="bg-[#161033] border border-purple-800/40 rounded-3xl p-8 shadow-xl">
+              <div className="bg-white border border-purple-100 rounded-3xl p-8 shadow-xl">
                 <form onSubmit={handleSaveCompanyInfo} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-purple-200">Agency Name</label>
+                      <label className="text-xs font-bold text-gray-600">Agency Name</label>
                       <input 
                         type="text"
                         value={companyInfo.name}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white text-sm focus:border-purple-400 focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-purple-200">Public Support Email</label>
+                      <label className="text-xs font-bold text-gray-600">Public Support Email</label>
                       <input 
                         type="email"
                         value={companyInfo.email}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white text-sm focus:border-purple-400 focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-purple-200">Global Contact Number</label>
+                      <label className="text-xs font-bold text-gray-600">Global Contact Number</label>
                       <input 
                         type="text"
                         value={companyInfo.phone}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white text-sm focus:border-purple-400 focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-purple-200">Brand Logo URL</label>
+                      <label className="text-xs font-bold text-gray-600">Brand Logo URL</label>
                       <input 
                         type="text"
                         value={companyInfo.logo}
                         onChange={(e) => setCompanyInfo({ ...companyInfo, logo: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white text-sm focus:border-purple-400 focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-purple-200">Headquarters Address</label>
+                    <label className="text-xs font-bold text-gray-600">Headquarters Address</label>
                     <textarea 
                       rows={2}
                       value={companyInfo.address}
                       onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white text-sm focus:border-purple-400 focus:outline-none"
+                      className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none"
                     />
                   </div>
 
                   <div className="flex justify-end pt-4">
                     <button
                       type="submit"
-                      className="px-8 py-3 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-900/50 transition-all"
+                      className="px-8 py-3 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 transition-all"
                     >
                       <Save className="w-4 h-4" />
                       <span>Update Global Identity</span>
@@ -4039,51 +4486,329 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </form>
               </div>
 
-              <div className="p-6 rounded-3xl bg-purple-950/30 border border-purple-800/40 space-y-3">
-                <div className="flex items-center gap-2 text-purple-200 font-bold text-sm">
-                  <Info className="w-5 h-5 text-purple-400" />
+              <div className="p-6 rounded-3xl bg-purple-100/30 border border-purple-100 space-y-3">
+                <div className="flex items-center gap-2 text-gray-600 font-bold text-sm">
+                  <Info className="w-5 h-5 text-gray-500" />
                   <span>Sync Notice</span>
                 </div>
-                <p className="text-xs text-purple-300 leading-relaxed">
+                <p className="text-xs text-gray-500 leading-relaxed">
                   The information above is synchronized across the Footer, Contact page, and About Us maps. Updating the phone number here will also update the primary WhatsApp contact button on the front-end.
                 </p>
               </div>
             </div>
           )}
 
+          {/* TAB: STUDENTS MANAGEMENT */}
+          {currentTab === 'students' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-display font-black text-[#18113C]">Registered <span className="text-[#6D28D9]">Students</span></h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage enrollments, student profiles and course interests</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setEditingStudentId(null);
+                    setStudentForm({
+                      id: '',
+                      name: '',
+                      email: '',
+                      phoneNumber: '',
+                      country: 'Pakistan',
+                      primaryCourse: COURSES[0].title,
+                      bio: '',
+                      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80'
+                    });
+                    setIsStudentModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#6D28D9] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 hover:bg-[#5B21B6] transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Register New Student</span>
+                </button>
+              </div>
+
+              {/* Students Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#6D28D9]">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">{studentsList.length}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Learners</div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">{studentsList.length}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Verified Students</div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">
+                      {[...new Set(studentsList.map(s => s.country))].length}
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Countries Served</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Students Table */}
+              <div className="bg-white border border-purple-100 rounded-3xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-purple-50/50 border-b border-purple-100">
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Course Interest</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {studentsList.length > 0 ? (
+                        studentsList.filter(s => 
+                          s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          s.email.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).map((student) => (
+                          <tr key={student.id} className="hover:bg-purple-50/30 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl overflow-hidden border border-purple-100 shadow-sm">
+                                  <img src={student.avatar} alt={student.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                  <div className="text-sm font-bold text-[#18113C]">{student.name}</div>
+                                  <div className="text-[10px] text-gray-400 flex items-center gap-1 font-medium">
+                                    <MapPin className="w-2.5 h-2.5" />
+                                    {student.country}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-xs font-medium text-gray-600">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Mail className="w-3 h-3 text-gray-500" />
+                                  {student.email}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-3 h-3 text-emerald-600" />
+                                  {student.phoneNumber}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-[#6D28D9] text-[10px] font-black uppercase tracking-wide border border-purple-100">
+                                {student.primaryCourse}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button 
+                                  onClick={() => {
+                                    setEditingStudentId(student.id);
+                                    setStudentForm({ ...student });
+                                    setIsStudentModalOpen(true);
+                                  }}
+                                  className="p-2 rounded-lg bg-purple-50 text-[#6D28D9] hover:bg-[#6D28D9] hover:text-white transition-all shadow-sm"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={() => setDeleteConfirm({ id: student.id, name: student.name, type: 'student' })}
+                                  className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-12 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                              <Users className="w-10 h-10 text-white" />
+                              <div className="text-gray-400 text-sm font-medium">No student records found</div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: DATABASE / SUPABASE */}
+          {currentTab === 'database' && (
+            <div className="space-y-6 max-w-4xl">
+              <div>
+                <h1 className="text-2xl font-display font-bold text-[#18113C]">Database & API Integration</h1>
+                <p className="text-xs text-gray-500 mt-1">Connect your WeVersity website to external Supabase cloud database</p>
+              </div>
+
+              <div className="bg-white border border-purple-100 rounded-3xl p-8 shadow-xl space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-200 flex items-center justify-center text-[#6D28D9]">
+                      <Database className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-[#18113C]">Supabase Cloud Connection</h3>
+                      <p className="text-xs text-gray-500">Sync all website courses, portfolio, teachers, students & messages</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                    supabaseConfig.status?.includes('Verified') 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                      : supabaseConfig.url && supabaseConfig.anonKey 
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}>
+                    {supabaseConfig.status || 'Disconnected'}
+                  </span>
+                </div>
+
+                {supabaseTestMsg && (
+                  <div className={`p-4 rounded-2xl text-xs font-medium border ${
+                    supabaseTestMsg.includes('Verified') || supabaseTestMsg.includes('Successful')
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}>
+                    {supabaseTestMsg}
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveSupabase} className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-600">Supabase Project URL</label>
+                      <input 
+                        type="url"
+                        required
+                        value={supabaseConfig.url}
+                        onChange={(e) => setSupabaseConfig({ ...supabaseConfig, url: e.target.value })}
+                        placeholder="https://your-project.supabase.co"
+                        className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-600">Supabase Anon Key</label>
+                      <input 
+                        type="password"
+                        required
+                        value={supabaseConfig.anonKey}
+                        onChange={(e) => setSupabaseConfig({ ...supabaseConfig, anonKey: e.target.value })}
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        className="w-full px-4 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] text-sm focus:border-purple-400 focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-purple-100">
+                    <button
+                      type="button"
+                      onClick={handleTestSupabase}
+                      disabled={supabaseTesting}
+                      className="px-5 py-2.5 rounded-xl bg-purple-50 text-[#6D28D9] border border-purple-200 text-xs font-bold hover:bg-purple-100 transition-all flex items-center gap-2"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${supabaseTesting ? 'animate-spin' : ''}`} />
+                      <span>{supabaseTesting ? 'Testing...' : 'Test Connection'}</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={supabaseTesting}
+                      className="px-8 py-3 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 transition-all"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Save & Sync Website Data</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* SQL Schema Copy Card */}
+              <div className="bg-white border border-purple-100 rounded-3xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#18113C] flex items-center gap-2">
+                    <Code2 className="w-4 h-4 text-[#6D28D9]" />
+                    <span>Supabase SQL Setup Code</span>
+                  </h3>
+                  <span className="text-[10px] text-gray-400">Run in Supabase SQL Editor</span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Copy and run this single command in your Supabase project's SQL Editor to auto-create the storage table:
+                </p>
+                <div className="p-4 rounded-xl bg-gray-900 text-emerald-400 font-mono text-xs overflow-x-auto relative group">
+                  <pre className="whitespace-pre-wrap">{`CREATE TABLE IF NOT EXISTS public.website_data (
+  id INT8 PRIMARY KEY,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS and add public read/write policy safely
+ALTER TABLE public.website_data ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public Website Sync" ON public.website_data;
+CREATE POLICY "Public Website Sync" ON public.website_data FOR ALL USING (true);`}</pre>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-3xl bg-blue-50 border border-blue-200 space-y-3">
+                <div className="flex items-center gap-2 text-blue-700 font-bold text-sm">
+                  <Server className="w-5 h-5 text-blue-600" />
+                  <span>How Supabase connects with the website?</span>
+                </div>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  When connected, all client inquiries, course updates, student registrations, teacher profiles, and portfolio projects automatically sync with your Supabase database in real-time.
+                </p>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
       {/* Quick Action Modal */}
       {quickActionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#181236] border border-purple-700/60 rounded-3xl p-6 shadow-2xl space-y-4 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <h3 className="font-bold text-sm text-white">{quickActionModal}</h3>
-              <button onClick={() => setQuickActionModal(null)} className="text-purple-300 hover:text-white">
+          <div className="w-full max-w-md bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-4 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-sm text-[#18113C]">{quickActionModal}</h3>
+              <button onClick={() => setQuickActionModal(null)} className="text-gray-500 hover:text-[#18113C]">
                 <X className="w-4 h-4" />
               </button>
             </div>
             
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
-                <label className="text-purple-300 font-semibold">Title / Description</label>
+                <label className="text-gray-500 font-semibold">Title / Description</label>
                 <input 
                   type="text"
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
                   placeholder="e.g. Next.js 15 Full Stack Masterclass"
-                  className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50"
+                  className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-purple-300 font-semibold">Price (USD)</label>
+                <label className="text-gray-500 font-semibold">Price (USD)</label>
                 <input 
                   type="number"
                   value={newCoursePrice}
                   onChange={(e) => setNewCoursePrice(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white"
+                  className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C]"
                 />
               </div>
             </div>
@@ -4091,7 +4816,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setQuickActionModal(null)}
-                className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
               >
                 Cancel
               </button>
@@ -4112,20 +4837,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Project Create / Edit Full Modal */}
       {isProjectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md overflow-y-auto">
-          <div className="w-full max-w-2xl bg-[#161033] border border-purple-700/60 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-white my-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-purple-100 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-[#18113C] my-8 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-4">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#6D28D9]/30 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                <div className="w-10 h-10 rounded-2xl bg-[#6D28D9]/30 border border-purple-500/40 flex items-center justify-center text-gray-500">
                   {editingProjectId ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white">
+                  <h3 className="font-bold text-base text-[#18113C]">
                     {editingProjectId ? 'Edit Portfolio Project' : 'Create New Portfolio Project'}
                   </h3>
-                  <p className="text-xs text-purple-300">
+                  <p className="text-xs text-gray-500">
                     Changes will instantly synchronize to the website and remain saved.
                   </p>
                 </div>
@@ -4134,7 +4859,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsProjectModalOpen(false)}
-                className="p-2 rounded-xl text-purple-400 hover:text-white hover:bg-purple-900/40 transition-colors"
+                className="p-2 rounded-xl text-gray-400 hover:text-[#18113C] hover:bg-purple-50 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4145,8 +4870,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
               
               {/* Title */}
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">
-                  Project Title <span className="text-rose-400">*</span>
+                <label className="text-gray-600 font-bold block">
+                  Project Title <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -4154,14 +4879,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   value={projectForm.title}
                   onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
                   placeholder="e.g. Modern Full-Stack Logistics Portal"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400 font-medium"
                 />
               </div>
 
               {/* Category & Category Label */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Category</label>
+                  <label className="text-gray-600 font-bold block">Category</label>
                   <select
                     value={projectForm.category}
                     onChange={(e) => {
@@ -4179,7 +4904,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         categoryLabel: labelMap[cat] || 'Web System'
                       });
                     }}
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:outline-none focus:border-purple-400"
                   >
                     <option value="web">High-Speed Web Portal</option>
                     <option value="ecommerce">E-Commerce & Online Store</option>
@@ -4190,13 +4915,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Category Label (Card Badge)</label>
+                  <label className="text-gray-600 font-bold block">Category Label (Card Badge)</label>
                   <input
                     type="text"
                     value={projectForm.categoryLabel}
                     onChange={(e) => setProjectForm({ ...projectForm, categoryLabel: e.target.value })}
                     placeholder="e.g. Food Ordering & E-Commerce"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                 </div>
               </div>
@@ -4204,35 +4929,35 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {/* Client, Location & Year */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Client Name</label>
+                  <label className="text-gray-600 font-bold block">Client Name</label>
                   <input
                     type="text"
                     value={projectForm.client}
                     onChange={(e) => setProjectForm({ ...projectForm, client: e.target.value })}
                     placeholder="e.g. Pizza Express App"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Location / Host</label>
+                  <label className="text-gray-600 font-bold block">Location / Host</label>
                   <input
                     type="text"
                     value={projectForm.location}
                     onChange={(e) => setProjectForm({ ...projectForm, location: e.target.value })}
                     placeholder="e.g. Live on Vercel"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Year</label>
+                  <label className="text-gray-600 font-bold block">Year</label>
                   <input
                     type="text"
                     value={projectForm.year}
                     onChange={(e) => setProjectForm({ ...projectForm, year: e.target.value })}
                     placeholder="2024"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                 </div>
               </div>
@@ -4240,31 +4965,31 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {/* Live Demo URL & Project Image */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Live Site / Demo URL (Optional)</label>
+                  <label className="text-gray-600 font-bold block">Live Site / Demo URL (Optional)</label>
                   <input
                     type="url"
                     value={projectForm.demoUrl}
                     onChange={(e) => setProjectForm({ ...projectForm, demoUrl: e.target.value })}
                     placeholder="https://pizza-az2a-i6p.vercel.app/"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Image URL / Path</label>
+                  <label className="text-gray-600 font-bold block">Image URL / Path</label>
                   <input
                     type="text"
                     value={projectForm.image}
                     onChange={(e) => setProjectForm({ ...projectForm, image: e.target.value })}
                     placeholder="/assets/aistudio/image_0c0bc5ad.png"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                   />
                 </div>
               </div>
 
               {/* Quick Image Presets */}
               <div className="space-y-1.5">
-                <label className="text-purple-300 text-[11px] font-semibold block">Select Existing Website Image:</label>
+                <label className="text-gray-500 text-[11px] font-semibold block">Select Existing Website Image:</label>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { label: 'Pizza Express', url: '/assets/aistudio/image_0c0bc5ad.png' },
@@ -4280,8 +5005,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       onClick={() => setProjectForm({ ...projectForm, image: preset.url })}
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all ${
                         projectForm.image === preset.url
-                          ? 'bg-[#6D28D9] border-purple-400 text-white'
-                          : 'bg-[#1C1340] border-purple-800/60 text-purple-300 hover:text-white'
+                          ? 'bg-[#6D28D9] border-purple-400 text-[#18113C]'
+                          : 'bg-purple-50/50 border-purple-100 text-gray-500 hover:text-[#18113C]'
                       }`}
                     >
                       {preset.label}
@@ -4292,116 +5017,116 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               {/* Summary */}
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Summary (Shown on Card)</label>
+                <label className="text-gray-600 font-bold block">Summary (Shown on Card)</label>
                 <textarea
                   rows={2}
                   value={projectForm.summary}
                   onChange={(e) => setProjectForm({ ...projectForm, summary: e.target.value })}
                   placeholder="High-speed interactive food delivery web app with crust customizer and real-time checkout..."
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400 leading-relaxed"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400 leading-relaxed"
                 />
               </div>
 
               {/* Challenge & Solution */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Challenge</label>
+                  <label className="text-gray-600 font-bold block">Challenge</label>
                   <textarea
                     rows={2}
                     value={projectForm.challenge}
                     onChange={(e) => setProjectForm({ ...projectForm, challenge: e.target.value })}
                     placeholder="Designing an ultra-responsive, mobile-first ordering system..."
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400 leading-relaxed"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400 leading-relaxed"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Solution</label>
+                  <label className="text-gray-600 font-bold block">Solution</label>
                   <textarea
                     rows={2}
                     value={projectForm.solution}
                     onChange={(e) => setProjectForm({ ...projectForm, solution: e.target.value })}
                     placeholder="Engineered with modern React and Tailwind CSS on Vercel..."
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400 leading-relaxed"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400 leading-relaxed"
                   />
                 </div>
               </div>
 
               {/* Tags */}
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Tech Stack Tags (Comma separated)</label>
+                <label className="text-gray-600 font-bold block">Tech Stack Tags (Comma separated)</label>
                 <input
                   type="text"
                   value={projectForm.tags}
                   onChange={(e) => setProjectForm({ ...projectForm, tags: e.target.value })}
                   placeholder="React, Tailwind CSS, Vercel, Food Delivery"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               {/* Result Metrics */}
               <div className="space-y-2 pt-2 border-t border-purple-800/50">
-                <label className="text-purple-200 font-bold block">Performance Metrics &amp; Outcomes</label>
+                <label className="text-gray-600 font-bold block">Performance Metrics &amp; Outcomes</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40 space-y-1">
+                  <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 space-y-1">
                     <input
                       type="text"
                       value={projectForm.metric1Val}
                       onChange={(e) => setProjectForm({ ...projectForm, metric1Val: e.target.value })}
                       placeholder="100%"
-                      className="w-full bg-transparent border-b border-purple-700/60 py-1 text-white font-bold text-xs focus:outline-none"
+                      className="w-full bg-transparent border-b border-purple-100 py-1 text-[#18113C] font-bold text-xs focus:outline-none"
                     />
                     <input
                       type="text"
                       value={projectForm.metric1Lbl}
                       onChange={(e) => setProjectForm({ ...projectForm, metric1Lbl: e.target.value })}
                       placeholder="Lighthouse Performance"
-                      className="w-full bg-transparent py-1 text-purple-300 text-[11px] focus:outline-none"
+                      className="w-full bg-transparent py-1 text-gray-500 text-[11px] focus:outline-none"
                     />
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40 space-y-1">
+                  <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 space-y-1">
                     <input
                       type="text"
                       value={projectForm.metric2Val}
                       onChange={(e) => setProjectForm({ ...projectForm, metric2Val: e.target.value })}
                       placeholder="<0.8s"
-                      className="w-full bg-transparent border-b border-purple-700/60 py-1 text-white font-bold text-xs focus:outline-none"
+                      className="w-full bg-transparent border-b border-purple-100 py-1 text-[#18113C] font-bold text-xs focus:outline-none"
                     />
                     <input
                       type="text"
                       value={projectForm.metric2Lbl}
                       onChange={(e) => setProjectForm({ ...projectForm, metric2Lbl: e.target.value })}
                       placeholder="Instant Menu Load"
-                      className="w-full bg-transparent py-1 text-purple-300 text-[11px] focus:outline-none"
+                      className="w-full bg-transparent py-1 text-gray-500 text-[11px] focus:outline-none"
                     />
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#1C1340] border border-purple-800/40 space-y-1">
+                  <div className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 space-y-1">
                     <input
                       type="text"
                       value={projectForm.metric3Val}
                       onChange={(e) => setProjectForm({ ...projectForm, metric3Val: e.target.value })}
                       placeholder="4.9★"
-                      className="w-full bg-transparent border-b border-purple-700/60 py-1 text-white font-bold text-xs focus:outline-none"
+                      className="w-full bg-transparent border-b border-purple-100 py-1 text-[#18113C] font-bold text-xs focus:outline-none"
                     />
                     <input
                       type="text"
                       value={projectForm.metric3Lbl}
                       onChange={(e) => setProjectForm({ ...projectForm, metric3Lbl: e.target.value })}
                       placeholder="User Satisfaction"
-                      className="w-full bg-transparent py-1 text-purple-300 text-[11px] focus:outline-none"
+                      className="w-full bg-transparent py-1 text-gray-500 text-[11px] focus:outline-none"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Modal Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setIsProjectModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold transition-colors"
                 >
                   Cancel
                 </button>
@@ -4422,15 +5147,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Estimator Project Type Modal */}
       {typeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-700/60 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <h3 className="font-bold text-base text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-base text-[#18113C]">
                 {editingTypeId ? 'Edit Project Type' : 'Add New Project Type'}
               </h3>
               <button 
                 onClick={() => setTypeModalOpen(false)}
-                className="p-1 rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/60 transition-colors"
+                className="p-1 rounded-xl text-gray-500 hover:text-[#18113C] hover:bg-purple-50 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4438,20 +5163,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSaveType} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Service / Project Name</label>
+                <label className="text-gray-600 font-bold block">Service / Project Name</label>
                 <input
                   type="text"
                   required
                   value={typeForm.name}
                   onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
                   placeholder="e.g. Custom Web Application"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Base Price (USD $)</label>
+                  <label className="text-gray-600 font-bold block">Base Price (USD $)</label>
                   <input
                     type="number"
                     min="0"
@@ -4460,15 +5185,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     value={typeForm.baseUSD}
                     onChange={(e) => setTypeForm({ ...typeForm, baseUSD: Number(e.target.value) })}
                     placeholder="850"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                   />
-                  <span className="text-[10px] text-emerald-400 font-bold block">
+                  <span className="text-[10px] text-emerald-600 font-bold block">
                     = ₨ {(typeForm.baseUSD * (estimatorSettings.currencyRates?.PKR || 280)).toLocaleString()} PKR
                   </span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Baseline Delivery (Weeks)</label>
+                  <label className="text-gray-600 font-bold block">Baseline Delivery (Weeks)</label>
                   <input
                     type="number"
                     min="1"
@@ -4478,17 +5203,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     value={typeForm.weeks}
                     onChange={(e) => setTypeForm({ ...typeForm, weeks: Number(e.target.value) })}
                     placeholder="3"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                   />
-                  <span className="text-[10px] text-purple-300 block">Standard turn-around</span>
+                  <span className="text-[10px] text-gray-500 block">Standard turn-around</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setTypeModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4507,15 +5232,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Estimator Add-on Modal */}
       {addonModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-700/60 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <h3 className="font-bold text-base text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-base text-[#18113C]">
                 {editingAddonId ? 'Edit Add-on Service' : 'Add New Add-on Service'}
               </h3>
               <button 
                 onClick={() => setAddonModalOpen(false)}
-                className="p-1 rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/60 transition-colors"
+                className="p-1 rounded-xl text-gray-500 hover:text-[#18113C] hover:bg-purple-50 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4523,19 +5248,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSaveAddon} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Add-on Feature Name</label>
+                <label className="text-gray-600 font-bold block">Add-on Feature Name</label>
                 <input
                   type="text"
                   required
                   value={addonForm.name}
                   onChange={(e) => setAddonForm({ ...addonForm, name: e.target.value })}
                   placeholder="e.g. Payment Gateway (Stripe/PayPal/Local)"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400 font-medium"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Additional Cost (USD $)</label>
+                <label className="text-gray-600 font-bold block">Additional Cost (USD $)</label>
                 <input
                   type="number"
                   min="0"
@@ -4544,18 +5269,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   value={addonForm.costUSD}
                   onChange={(e) => setAddonForm({ ...addonForm, costUSD: Number(e.target.value) })}
                   placeholder="150"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                 />
-                <span className="text-[10px] text-emerald-400 font-bold block">
+                <span className="text-[10px] text-emerald-600 font-bold block">
                   = +₨ {(addonForm.costUSD * (estimatorSettings.currencyRates?.PKR || 280)).toLocaleString()} PKR surcharge
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setAddonModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4574,13 +5299,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Estimator Scale Modal */}
       {scaleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-700/60 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <h3 className="font-bold text-base text-white">Edit Scope Scale & Multiplier</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-base text-[#18113C]">Edit Scope Scale & Multiplier</h3>
               <button 
                 onClick={() => setScaleModalOpen(false)}
-                className="p-1 rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/60 transition-colors"
+                className="p-1 rounded-xl text-gray-500 hover:text-[#18113C] hover:bg-purple-50 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4588,20 +5313,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSaveScale} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Scale Label</label>
+                <label className="text-gray-600 font-bold block">Scale Label</label>
                 <input
                   type="text"
                   required
                   value={scaleForm.label}
                   onChange={(e) => setScaleForm({ ...scaleForm, label: e.target.value })}
                   placeholder="e.g. Standard Business (6 - 12 Views)"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-medium focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-medium focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Multiplier Factor</label>
+                  <label className="text-gray-600 font-bold block">Multiplier Factor</label>
                   <input
                     type="number"
                     min="0.1"
@@ -4611,13 +5336,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     value={scaleForm.multiplier}
                     onChange={(e) => setScaleForm({ ...scaleForm, multiplier: Number(e.target.value) })}
                     placeholder="1.0"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                   />
-                  <span className="text-[10px] text-purple-400">e.g. 1.0 = 100%, 1.35 = 135%</span>
+                  <span className="text-[10px] text-gray-500">e.g. 1.0 = 100%, 1.35 = 135%</span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Weeks Delta</label>
+                  <label className="text-gray-600 font-bold block">Weeks Delta</label>
                   <input
                     type="number"
                     step="0.5"
@@ -4625,17 +5350,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     value={scaleForm.weeksDelta}
                     onChange={(e) => setScaleForm({ ...scaleForm, weeksDelta: Number(e.target.value) })}
                     placeholder="0"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                   />
-                  <span className="text-[10px] text-purple-400">Extra weeks added or subtracted</span>
+                  <span className="text-[10px] text-gray-500">Extra weeks added or subtracted</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setScaleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4654,13 +5379,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Estimator Design Tier Modal */}
       {designModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-700/60 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <h3 className="font-bold text-base text-white">Edit UI/UX Design Tier</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-base text-[#18113C]">Edit UI/UX Design Tier</h3>
               <button 
                 onClick={() => setDesignModalOpen(false)}
-                className="p-1 rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/60 transition-colors"
+                className="p-1 rounded-xl text-gray-500 hover:text-[#18113C] hover:bg-purple-50 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4668,31 +5393,31 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSaveDesign} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Design Tier Title</label>
+                <label className="text-gray-600 font-bold block">Design Tier Title</label>
                 <input
                   type="text"
                   required
                   value={designForm.label}
                   onChange={(e) => setDesignForm({ ...designForm, label: e.target.value })}
                   placeholder="e.g. Bespoke Custom UI/UX"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-medium focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-medium focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Description</label>
+                <label className="text-gray-600 font-bold block">Description</label>
                 <input
                   type="text"
                   required
                   value={designForm.desc}
                   onChange={(e) => setDesignForm({ ...designForm, desc: e.target.value })}
                   placeholder="e.g. Hand-tailored branding, micro-interactions"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white placeholder-purple-400/50 focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] placeholder-gray-400/50 focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Additional Cost (USD $)</label>
+                <label className="text-gray-600 font-bold block">Additional Cost (USD $)</label>
                 <input
                   type="number"
                   min="0"
@@ -4701,18 +5426,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   value={designForm.costUSD}
                   onChange={(e) => setDesignForm({ ...designForm, costUSD: Number(e.target.value) })}
                   placeholder="250"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                 />
-                <span className="text-[10px] text-emerald-400 font-bold block">
+                <span className="text-[10px] text-emerald-600 font-bold block">
                   = ₨ {(designForm.costUSD * (estimatorSettings.currencyRates?.PKR || 280)).toLocaleString()} PKR
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setDesignModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4731,13 +5456,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Estimator Backend Tier Modal */}
       {backendModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-700/60 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
-              <h3 className="font-bold text-base text-white">Edit Backend Complexity Option</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-base text-[#18113C]">Edit Backend Complexity Option</h3>
               <button 
                 onClick={() => setBackendModalOpen(false)}
-                className="p-1 rounded-xl text-purple-300 hover:text-white hover:bg-purple-900/60 transition-colors"
+                className="p-1 rounded-xl text-gray-500 hover:text-[#18113C] hover:bg-purple-50 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4745,19 +5470,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSaveBackend} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Backend Option Title</label>
+                <label className="text-gray-600 font-bold block">Backend Option Title</label>
                 <input
                   type="text"
                   required
                   value={backendForm.label}
                   onChange={(e) => setBackendForm({ ...backendForm, label: e.target.value })}
                   placeholder="e.g. Standard REST API & Auth"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-medium focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-medium focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Additional Cost (USD $)</label>
+                <label className="text-gray-600 font-bold block">Additional Cost (USD $)</label>
                 <input
                   type="number"
                   min="0"
@@ -4766,18 +5491,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   value={backendForm.costUSD}
                   onChange={(e) => setBackendForm({ ...backendForm, costUSD: Number(e.target.value) })}
                   placeholder="200"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-extrabold focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-extrabold focus:outline-none focus:border-purple-400"
                 />
-                <span className="text-[10px] text-emerald-400 font-bold block">
+                <span className="text-[10px] text-emerald-600 font-bold block">
                   = ₨ {(backendForm.costUSD * (estimatorSettings.currencyRates?.PKR || 280)).toLocaleString()} PKR
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setBackendModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4796,16 +5521,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Estimator Delete Confirmation Modal */}
       {deleteConfirmEstimator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-[#161033] border border-rose-800/60 rounded-3xl p-6 shadow-2xl space-y-4 text-white text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-950 border border-rose-700/60 text-rose-400 mx-auto flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-sm bg-white border border-rose-800/60 rounded-3xl p-6 shadow-2xl space-y-4 text-[#18113C] text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-700/60 text-rose-600 mx-auto flex items-center justify-center">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">
+              <h3 className="font-bold text-base text-[#18113C]">
                 Delete {deleteConfirmEstimator.type === 'type' ? 'Project Type' : 'Add-on'}?
               </h3>
-              <p className="text-xs text-purple-300 mt-1 leading-relaxed">
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                 Are you sure you want to remove <strong>"{deleteConfirmEstimator.name}"</strong>? It will be removed immediately from the live Cost Estimator on the website.
               </p>
             </div>
@@ -4813,7 +5538,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <button
                 type="button"
                 onClick={() => setDeleteConfirmEstimator(null)}
-                className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
               >
                 Cancel
               </button>
@@ -4826,7 +5551,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     handleDeleteAddon(deleteConfirmEstimator.id);
                   }
                 }}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-900/50"
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-[#18113C] text-xs font-bold shadow-lg shadow-rose-900/50"
               >
                 Yes, Delete
               </button>
@@ -4838,17 +5563,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {/* ABOUT US: Milestone Add/Edit Modal */}
       {milestoneModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-800/80 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
+          <div className="w-full max-w-md bg-white border border-purple-800/80 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#A78BFA]" />
-                <h3 className="font-bold text-base text-white">
+                <h3 className="font-bold text-base text-[#18113C]">
                   {editingMilestoneId ? 'Edit Milestone' : 'Add New Milestone'}
                 </h3>
               </div>
               <button
                 onClick={() => setMilestoneModalOpen(false)}
-                className="p-1 rounded-lg text-purple-400 hover:text-white hover:bg-purple-900/50"
+                className="p-1 rounded-lg text-gray-400 hover:text-[#18113C] hover:bg-purple-100"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4856,46 +5581,46 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSaveMilestone} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Year / Timeline Label</label>
+                <label className="text-gray-600 font-bold block">Year / Timeline Label</label>
                 <input
                   type="text"
                   required
                   value={milestoneForm.year}
                   onChange={(e) => setMilestoneForm({ ...milestoneForm, year: e.target.value })}
                   placeholder="e.g. 2026"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-bold focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-bold focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Milestone Title</label>
+                <label className="text-gray-600 font-bold block">Milestone Title</label>
                 <input
                   type="text"
                   required
                   value={milestoneForm.title}
                   onChange={(e) => setMilestoneForm({ ...milestoneForm, title: e.target.value })}
                   placeholder="e.g. Expansion into Enterprise Cloud Solutions"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white focus:outline-none focus:border-purple-400 font-bold"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:outline-none focus:border-purple-400 font-bold"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Milestone Description</label>
+                <label className="text-gray-600 font-bold block">Milestone Description</label>
                 <textarea
                   rows={3}
                   required
                   value={milestoneForm.desc}
                   onChange={(e) => setMilestoneForm({ ...milestoneForm, desc: e.target.value })}
                   placeholder="Describe the milestone, breakthrough, or expansion..."
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white focus:outline-none focus:border-purple-400 leading-relaxed"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:outline-none focus:border-purple-400 leading-relaxed"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setMilestoneModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -4915,17 +5640,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {/* ABOUT US: Leadership Team Add/Edit Modal */}
       {leaderModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/80 backdrop-blur-md">
-          <div className="w-full max-w-lg bg-[#161033] border border-purple-800/80 rounded-3xl p-6 shadow-2xl space-y-5 text-white max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
+          <div className="w-full max-w-lg bg-white border border-purple-800/80 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#A78BFA]" />
-                <h3 className="font-bold text-base text-white">
+                <h3 className="font-bold text-base text-[#18113C]">
                   {editingLeaderId ? 'Edit Team Member' : 'Add New Team Member'}
                 </h3>
               </div>
               <button
                 onClick={() => setLeaderModalOpen(false)}
-                className="p-1 rounded-lg text-purple-400 hover:text-white hover:bg-purple-900/50"
+                className="p-1 rounded-lg text-gray-400 hover:text-[#18113C] hover:bg-purple-100"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -4934,44 +5659,44 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <form onSubmit={handleSaveLeader} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Full Name</label>
+                  <label className="text-gray-600 font-bold block">Full Name</label>
                   <input
                     type="text"
                     required
                     value={leaderForm.name}
                     onChange={(e) => setLeaderForm({ ...leaderForm, name: e.target.value })}
                     placeholder="e.g. Shahbaz Aslam"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-bold focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-bold focus:outline-none focus:border-purple-400"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-purple-200 font-bold block">Role / Designation</label>
+                  <label className="text-gray-600 font-bold block">Role / Designation</label>
                   <input
                     type="text"
                     required
                     value={leaderForm.role}
                     onChange={(e) => setLeaderForm({ ...leaderForm, role: e.target.value })}
                     placeholder="e.g. Lead Web Developer"
-                    className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:outline-none focus:border-purple-400"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Bio / Summary</label>
+                <label className="text-gray-600 font-bold block">Bio / Summary</label>
                 <textarea
                   rows={3}
                   required
                   value={leaderForm.bio}
                   onChange={(e) => setLeaderForm({ ...leaderForm, bio: e.target.value })}
                   placeholder="Specialist in modern web development, frontend architectures, responsive UI engineering..."
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white focus:outline-none focus:border-purple-400 leading-relaxed"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:outline-none focus:border-purple-400 leading-relaxed"
                 />
               </div>
 
               {/* Avatar Selector */}
               <div className="space-y-2">
-                <label className="text-purple-200 font-bold block">Profile Avatar Image</label>
+                <label className="text-gray-600 font-bold block">Profile Avatar Image</label>
                 
                 <div className="flex items-center gap-3">
                   <img
@@ -4988,13 +5713,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     value={leaderForm.avatar}
                     onChange={(e) => setLeaderForm({ ...leaderForm, avatar: e.target.value })}
                     placeholder="/assets/aistudio/..."
-                    className="w-full px-3.5 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-mono text-[11px] focus:outline-none focus:border-purple-400"
+                    className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-mono text-[11px] focus:outline-none focus:border-purple-400"
                   />
                 </div>
 
                 {/* Quick Presets */}
                 <div className="space-y-1 pt-1">
-                  <span className="text-[10px] text-purple-400 font-semibold">Or pick from existing team photos:</span>
+                  <span className="text-[10px] text-gray-400 font-semibold">Or pick from existing team photos:</span>
                   <div className="flex items-center gap-2 flex-wrap">
                     {[
                       { name: 'Shahbaz', src: '/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png' },
@@ -5011,8 +5736,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         onClick={() => setLeaderForm({ ...leaderForm, avatar: p.src })}
                         className={`px-2 py-1 rounded-lg border text-[10px] font-medium transition-all ${
                           leaderForm.avatar === p.src
-                            ? 'bg-purple-600 text-white border-purple-400'
-                            : 'bg-purple-950 text-purple-300 border-purple-800/60 hover:text-white'
+                            ? 'bg-purple-600 text-[#18113C] border-purple-400'
+                            : 'bg-purple-100 text-gray-500 border-purple-100 hover:text-[#18113C]'
                         }`}
                       >
                         {p.name}
@@ -5022,11 +5747,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setLeaderModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -5046,17 +5771,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {/* ABOUT US: Principle Edit Modal */}
       {principleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#161033] border border-purple-800/80 rounded-3xl p-6 shadow-2xl space-y-5 text-white">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-3">
+          <div className="w-full max-w-md bg-white border border-purple-800/80 rounded-3xl p-6 shadow-2xl space-y-5 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#A78BFA]" />
-                <h3 className="font-bold text-base text-white">
+                <h3 className="font-bold text-base text-[#18113C]">
                   Edit Engineering Principle
                 </h3>
               </div>
               <button
                 onClick={() => setPrincipleModalOpen(false)}
-                className="p-1 rounded-lg text-purple-400 hover:text-white hover:bg-purple-900/50"
+                className="p-1 rounded-lg text-gray-400 hover:text-[#18113C] hover:bg-purple-100"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -5064,7 +5789,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <form onSubmit={handleSavePrinciple} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Principle Icon</label>
+                <label className="text-gray-600 font-bold block">Principle Icon</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { id: 'Code2', label: 'Code', icon: <Code2 className="w-4 h-4" /> },
@@ -5078,8 +5803,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       onClick={() => setPrincipleForm({ ...principleForm, icon: ic.id as any })}
                       className={`p-2.5 rounded-xl border flex flex-col items-center gap-1 transition-all ${
                         principleForm.icon === ic.id
-                          ? 'bg-purple-600 text-white border-purple-300 shadow-md shadow-purple-900/60'
-                          : 'bg-purple-950/60 text-purple-300 border-purple-800/60 hover:text-white'
+                          ? 'bg-purple-600 text-[#18113C] border-purple-300 shadow-md shadow-purple-900/60'
+                          : 'bg-purple-100/60 text-gray-500 border-purple-100 hover:text-[#18113C]'
                       }`}
                     >
                       {ic.icon}
@@ -5090,34 +5815,34 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Principle Title</label>
+                <label className="text-gray-600 font-bold block">Principle Title</label>
                 <input
                   type="text"
                   required
                   value={principleForm.title}
                   onChange={(e) => setPrincipleForm({ ...principleForm, title: e.target.value })}
                   placeholder="e.g. Zero Page-Builder Bloat"
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white font-bold focus:outline-none focus:border-purple-400"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-bold focus:outline-none focus:border-purple-400"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-purple-200 font-bold block">Description / Core Philosophy</label>
+                <label className="text-gray-600 font-bold block">Description / Core Philosophy</label>
                 <textarea
                   rows={3}
                   required
                   value={principleForm.desc}
                   onChange={(e) => setPrincipleForm({ ...principleForm, desc: e.target.value })}
                   placeholder="We write hand-crafted, clean semantic code..."
-                  className="w-full px-3.5 py-2.5 bg-[#1C1340] border border-purple-800/60 rounded-xl text-white focus:outline-none focus:border-purple-400 leading-relaxed"
+                  className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:outline-none focus:border-purple-400 leading-relaxed"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-800/60">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-purple-100">
                 <button
                   type="button"
                   onClick={() => setPrincipleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
                 >
                   Cancel
                 </button>
@@ -5136,16 +5861,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* ABOUT US: Delete Confirmation Modal */}
       {deleteConfirmAbout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-[#161033] border border-rose-800/60 rounded-3xl p-6 shadow-2xl space-y-4 text-white text-center">
-            <div className="w-12 h-12 rounded-2xl bg-rose-950 border border-rose-700/60 text-rose-400 mx-auto flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-sm bg-white border border-rose-800/60 rounded-3xl p-6 shadow-2xl space-y-4 text-[#18113C] text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-700/60 text-rose-600 mx-auto flex items-center justify-center">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white">
+              <h3 className="font-bold text-base text-[#18113C]">
                 Delete {deleteConfirmAbout.type === 'milestone' ? 'Milestone' : 'Team Member'}?
               </h3>
-              <p className="text-xs text-purple-300 mt-1 leading-relaxed">
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                 Are you sure you want to remove <strong>"{deleteConfirmAbout.name}"</strong>? This change will be immediately reflected on the live website.
               </p>
             </div>
@@ -5153,7 +5878,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <button
                 type="button"
                 onClick={() => setDeleteConfirmAbout(null)}
-                className="px-4 py-2 rounded-xl bg-purple-950 text-purple-300 hover:text-white text-xs font-bold"
+                className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
               >
                 Cancel
               </button>
@@ -5166,7 +5891,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     handleDeleteLeader(deleteConfirmAbout.id);
                   }
                 }}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-900/50"
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-[#18113C] text-xs font-bold shadow-lg shadow-rose-900/50"
               >
                 Yes, Delete
               </button>
@@ -5175,42 +5900,236 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
       )}
 
+      {/* Contest Modal */}
+      {isContestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-lg bg-white border border-purple-100 rounded-3xl p-6 shadow-2xl space-y-4 text-[#18113C]">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <h3 className="font-bold text-base text-[#18113C]">{editingContestId ? 'Edit Contest' : 'New Contest'}</h3>
+              <button onClick={() => setIsContestModalOpen(false)} className="text-gray-500 hover:text-[#18113C]"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSaveContest} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Contest Title</label>
+                <input type="text" value={contestForm.title} onChange={(e) => setContestForm({ ...contestForm, title: e.target.value })} required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Description</label>
+                <textarea value={contestForm.description} onChange={(e) => setContestForm({ ...contestForm, description: e.target.value })} rows={2} required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Date</label>
+                  <input type="text" value={contestForm.date} onChange={(e) => setContestForm({ ...contestForm, date: e.target.value })} placeholder="e.g. Nov 15, 2026" required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Prize Pool</label>
+                  <input type="text" value={contestForm.prize} onChange={(e) => setContestForm({ ...contestForm, prize: e.target.value })} placeholder="e.g. $500 Cash" required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Status</label>
+                  <select value={contestForm.status} onChange={(e) => setContestForm({ ...contestForm, status: e.target.value as any })} className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none">
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="Live">Live</option>
+                    <option value="Ended">Ended</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Image URL</label>
+                  <input type="text" value={contestForm.image} onChange={(e) => setContestForm({ ...contestForm, image: e.target.value })} className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Link URL</label>
+                  <input type="text" value={contestForm.link || ''} onChange={(e) => setContestForm({ ...contestForm, link: e.target.value })} placeholder="https://..." className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-bold">Save Contest</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Team Member Modal */}
+      {isTeamModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-purple-100 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-[#18113C] my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-4">
+              <h3 className="font-bold text-base text-[#18113C]">{editingTeamMemberId ? 'Edit Team Member' : 'Add Team Member'}</h3>
+              <button onClick={() => setIsTeamModalOpen(false)} className="text-gray-500 hover:text-[#18113C]"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSaveTeamMember} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Full Name</label>
+                  <input type="text" value={teamForm.name} onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })} required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Role / Designation</label>
+                  <input type="text" value={teamForm.role} onChange={(e) => setTeamForm({ ...teamForm, role: e.target.value })} required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Department</label>
+                  <select 
+                    value={teamForm.department} 
+                    onChange={(e) => {
+                      const dept = e.target.value as any;
+                      const labels: Record<string, string> = {
+                        leadership: 'Executive & Leadership',
+                        engineering: 'Full-Stack Engineering',
+                        ai: 'AI & Generative Tech',
+                        growth: 'Growth & SEO',
+                        design: 'Creative & Design'
+                      };
+                      setTeamForm({ ...teamForm, department: dept, departmentLabel: labels[dept] });
+                    }} 
+                    className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none"
+                  >
+                    <option value="leadership">Leadership</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="ai">AI</option>
+                    <option value="growth">Growth</option>
+                    <option value="design">Design</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Experience</label>
+                  <input type="text" value={teamForm.experience} onChange={(e) => setTeamForm({ ...teamForm, experience: e.target.value })} placeholder="e.g. 6+ Years" required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Bio</label>
+                <textarea value={teamForm.bio} onChange={(e) => setTeamForm({ ...teamForm, bio: e.target.value })} rows={3} required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Key Achievement</label>
+                <input type="text" value={teamForm.keyAchievement} onChange={(e) => setTeamForm({ ...teamForm, keyAchievement: e.target.value })} placeholder="e.g. Built multi-branch ERP handling 20k+ daily transactions" required className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Technologies (comma separated)</label>
+                <input type="text" value={(teamForm.techStack || []).join(', ')} onChange={(e) => setTeamForm({ ...teamForm, techStack: e.target.value.split(',').map(s => s.trim()) })} className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Profile Image URL</label>
+                <input type="text" value={teamForm.imageUrl || ''} onChange={(e) => setTeamForm({ ...teamForm, imageUrl: e.target.value })} placeholder="/assets/aistudio/..." className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">LinkedIn / Profile Link</label>
+                <input type="url" value={teamForm.profileLink || ''} onChange={(e) => setTeamForm({ ...teamForm, profileLink: e.target.value })} placeholder="https://linkedin.com/in/..." className="w-full px-3.5 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] focus:border-purple-400 focus:outline-none" />
+              </div>
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="px-10 py-3 rounded-xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-bold shadow-lg shadow-purple-200">Save Member Profile</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Teacher Edit Modal */}
       {isTeacherModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md overflow-y-auto">
-          <div className="w-full max-w-2xl bg-[#161033] border border-purple-700/60 rounded-3xl p-8 shadow-2xl space-y-6 text-white my-8">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-purple-100 rounded-3xl p-8 shadow-2xl space-y-6 text-[#18113C] my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-4">
               <h3 className="font-bold text-lg">{editingTeacherId ? 'Edit Teacher' : 'Add New Teacher'}</h3>
-              <button onClick={() => setIsTeacherModalOpen(false)} className="text-purple-300 hover:text-white"><X className="w-6 h-6" /></button>
+              <button onClick={() => setIsTeacherModalOpen(false)} className="text-gray-500 hover:text-[#18113C]"><X className="w-6 h-6" /></button>
             </div>
-            <form onSubmit={handleSaveTeacher} className="space-y-4">
+            <form onSubmit={handleSaveTeacher} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Full Name</label>
-                  <input type="text" required value={teacherForm.name} onChange={e => setTeacherForm({...teacherForm, name: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-gray-600">Full Name</label>
+                  <input type="text" required value={teacherForm.name} onChange={e => setTeacherForm({...teacherForm, name: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Role / Designation</label>
-                  <input type="text" required value={teacherForm.role} onChange={e => setTeacherForm({...teacherForm, role: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-gray-600">Role / Designation</label>
+                  <input type="text" required value={teacherForm.role} onChange={e => setTeacherForm({...teacherForm, role: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Experience (e.g. 7+ Years)</label>
-                  <input type="text" value={teacherForm.experience} onChange={e => setTeacherForm({...teacherForm, experience: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-gray-600">Category</label>
+                  <select 
+                    value={teacherForm.category} 
+                    onChange={e => {
+                      const labels: any = {
+                        'ai': 'CEO & Claude AI',
+                        'web': 'Web Development',
+                        'seo': 'SEO & Growth',
+                        'office': 'Editing & Content',
+                        'english': 'Spoken English'
+                      };
+                      setTeacherForm({...teacherForm, category: e.target.value, categoryLabel: labels[e.target.value] || 'Instructor'});
+                    }} 
+                    className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm"
+                  >
+                    <option value="ai">CEO & Claude AI</option>
+                    <option value="web">Web Development</option>
+                    <option value="seo">SEO & Growth</option>
+                    <option value="office">Editing & Content</option>
+                    <option value="english">Spoken English</option>
+                  </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Avatar URL</label>
-                  <input type="text" value={teacherForm.avatar} onChange={e => setTeacherForm({...teacherForm, avatar: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-gray-600">Specialization</label>
+                  <input type="text" value={teacherForm.specialization} onChange={e => setTeacherForm({...teacherForm, specialization: e.target.value})} placeholder="e.g. Claude AI, Prompt Engineering" className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Experience (e.g. 7+ Years)</label>
+                  <input type="text" value={teacherForm.experience} onChange={e => setTeacherForm({...teacherForm, experience: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Students Count (e.g. 1,500+)</label>
+                  <input type="text" value={teacherForm.studentsCount} onChange={e => setTeacherForm({...teacherForm, studentsCount: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Rating (0-5)</label>
+                  <input type="number" step="0.01" min="0" max="5" value={teacherForm.rating} onChange={e => setTeacherForm({...teacherForm, rating: e.target.value as any})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Reviews Count</label>
+                  <input type="number" value={teacherForm.reviewsCount} onChange={e => setTeacherForm({...teacherForm, reviewsCount: e.target.value as any})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+                </div>
+              </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-bold text-purple-200">Professional Bio</label>
-                <textarea rows={3} value={teacherForm.bio} onChange={e => setTeacherForm({...teacherForm, bio: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                <label className="text-xs font-bold text-gray-600">Primary Course Title (linked to courses view)</label>
+                <input type="text" value={teacherForm.primaryCourse} onChange={e => setTeacherForm({...teacherForm, primaryCourse: e.target.value})} placeholder="e.g. Claude AI Mastery" className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
               </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Skills (comma separated)</label>
+                <input type="text" value={teacherForm.skills} onChange={e => setTeacherForm({...teacherForm, skills: e.target.value})} placeholder="React, Tailwind, Node.js" className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Highlights (comma separated)</label>
+                <input type="text" value={teacherForm.highlights} onChange={e => setTeacherForm({...teacherForm, highlights: e.target.value})} placeholder="Senior Dev at Google, 10+ Years Exp" className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Avatar URL</label>
+                <input type="text" value={teacherForm.avatar} onChange={e => setTeacherForm({...teacherForm, avatar: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Professional Bio</label>
+                <textarea rows={3} value={teacherForm.bio} onChange={e => setTeacherForm({...teacherForm, bio: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+              </div>
+
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setIsTeacherModalOpen(false)} className="px-6 py-2 rounded-xl bg-purple-950 text-purple-300">Cancel</button>
-                <button type="submit" className="px-6 py-2 rounded-xl bg-[#6D28D9] text-white font-bold">Save Teacher</button>
+                <button type="button" onClick={() => setIsTeacherModalOpen(false)} className="px-6 py-2 rounded-xl bg-purple-100 text-gray-500">Cancel</button>
+                <button type="submit" className="px-6 py-2 rounded-xl bg-[#6D28D9] text-white font-bold shadow-lg shadow-purple-200">Save Teacher</button>
               </div>
             </form>
           </div>
@@ -5219,46 +6138,155 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       {/* Session Edit Modal */}
       {isSessionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/85 backdrop-blur-md overflow-y-auto">
-          <div className="w-full max-w-2xl bg-[#161033] border border-purple-700/60 rounded-3xl p-8 shadow-2xl space-y-6 text-white my-8">
-            <div className="flex items-center justify-between border-b border-purple-800/60 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-purple-100 rounded-3xl p-8 shadow-2xl space-y-6 text-[#18113C] my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-4">
               <h3 className="font-bold text-lg">{editingSessionId ? 'Edit Session' : 'Schedule Session'}</h3>
-              <button onClick={() => setIsSessionModalOpen(false)} className="text-purple-300 hover:text-white"><X className="w-6 h-6" /></button>
+              <button onClick={() => setIsSessionModalOpen(false)} className="text-gray-500 hover:text-[#18113C]"><X className="w-6 h-6" /></button>
             </div>
             <form onSubmit={handleSaveSession} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-purple-200">Session Title</label>
-                <input type="text" required value={sessionForm.title} onChange={e => setSessionForm({...sessionForm, title: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                <label className="text-xs font-bold text-gray-600">Session Title</label>
+                <input type="text" required value={sessionForm.title} onChange={e => setSessionForm({...sessionForm, title: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Thumbnail URL</label>
+                <input type="text" value={sessionForm.thumbnail} onChange={e => setSessionForm({...sessionForm, thumbnail: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Instructor Name</label>
-                  <input type="text" required value={sessionForm.instructor} onChange={e => setSessionForm({...sessionForm, instructor: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-gray-600">Instructor Name</label>
+                  <input type="text" required value={sessionForm.instructor} onChange={e => setSessionForm({...sessionForm, instructor: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Date (e.g. Nov 20, 2026)</label>
-                  <input type="text" required value={sessionForm.date} onChange={e => setSessionForm({...sessionForm, date: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
+                  <label className="text-xs font-bold text-gray-600">Start Time (for auto-live)</label>
+                  <input type="datetime-local" required value={sessionForm.startTime || ''} onChange={e => setSessionForm({...sessionForm, startTime: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Status</label>
-                  <select value={sessionForm.status} onChange={e => setSessionForm({...sessionForm, status: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm">
+                  <label className="text-xs font-bold text-gray-600">Date (e.g. Nov 20, 2026)</label>
+                  <input type="text" required value={sessionForm.date} onChange={e => setSessionForm({...sessionForm, date: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-600">Status</label>
+                  <select value={sessionForm.status} onChange={e => setSessionForm({...sessionForm, status: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm">
                     <option>Upcoming</option>
                     <option>Live</option>
                     <option>Completed</option>
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-purple-200">Duration</label>
-                  <input type="text" value={sessionForm.duration} onChange={e => setSessionForm({...sessionForm, duration: e.target.value})} className="w-full px-4 py-2 bg-[#1C1340] border border-purple-800/60 rounded-xl text-sm" />
-                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600">Duration</label>
+                <input type="text" value={sessionForm.duration} onChange={e => setSessionForm({...sessionForm, duration: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm" />
               </div>
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setIsSessionModalOpen(false)} className="px-6 py-2 rounded-xl bg-purple-950 text-purple-300">Cancel</button>
+                <button type="button" onClick={() => setIsSessionModalOpen(false)} className="px-6 py-2 rounded-xl bg-purple-100 text-gray-500">Cancel</button>
                 <button type="submit" className="px-6 py-2 rounded-xl bg-[#6D28D9] text-white font-bold">Save Session</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Student Edit Modal */}
+      {isStudentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white border border-purple-100 rounded-3xl p-8 shadow-2xl space-y-6 text-[#18113C] my-8">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-4">
+              <h3 className="font-bold text-lg text-[#18113C]">{editingStudentId ? 'Edit Student' : 'Register New Student'}</h3>
+              <button onClick={() => setIsStudentModalOpen(false)} className="text-gray-400 hover:text-[#6D28D9]"><X className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={handleSaveStudent} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500">Full Name</label>
+                  <input type="text" required value={studentForm.name} onChange={e => setStudentForm({...studentForm, name: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500">Email Address</label>
+                  <input type="email" required value={studentForm.email} onChange={e => setStudentForm({...studentForm, email: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500">Phone Number</label>
+                  <input type="text" required value={studentForm.phoneNumber} onChange={e => setStudentForm({...studentForm, phoneNumber: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500">Country</label>
+                  <input type="text" value={studentForm.country} onChange={e => setStudentForm({...studentForm, country: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500">Select Your Course</label>
+                <select 
+                  value={studentForm.primaryCourse} 
+                  onChange={e => setStudentForm({...studentForm, primaryCourse: e.target.value})}
+                  className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none"
+                >
+                  {COURSES.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500">Profile Image URL</label>
+                <input type="text" value={studentForm.avatar} onChange={e => setStudentForm({...studentForm, avatar: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-500">Student Bio (Optional)</label>
+                <textarea rows={3} value={studentForm.bio} onChange={e => setStudentForm({...studentForm, bio: e.target.value})} className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:ring-2 focus:ring-purple-200 focus:outline-none" />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setIsStudentModalOpen(false)} className="px-6 py-2 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="submit" className="px-6 py-2 rounded-xl bg-[#6D28D9] text-white font-bold shadow-lg shadow-purple-200 hover:bg-[#5B21B6] transition-all">Save Student</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Unified Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
+          <div className="w-full max-w-sm bg-white border border-rose-800/60 rounded-3xl p-6 shadow-2xl space-y-4 text-[#18113C] text-center">
+            <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-700/60 text-rose-600 mx-auto flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-[#18113C]">Delete {deleteConfirm.type.charAt(0).toUpperCase() + deleteConfirm.type.slice(1)}?</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Are you sure you want to remove <strong>"{deleteConfirm.name}"</strong>? This action cannot be undone and will update the live website.
+              </p>
+            </div>
+            <div className="flex justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-2 rounded-xl bg-purple-100 text-gray-500 hover:text-[#18113C] text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const { id, type } = deleteConfirm;
+                  if (type === 'project') handleDeleteProject(id);
+                  if (type === 'teacher') handleDeleteTeacher(id);
+                  if (type === 'student') handleDeleteStudent(id);
+                  if (type === 'session') handleDeleteSession(id);
+                  if (type === 'contest') handleDeleteContest(id);
+                  if (type === 'team') handleDeleteTeamMember(id);
+                  setDeleteConfirm(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-900/50"
+              >
+                Yes, Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

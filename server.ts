@@ -4,17 +4,72 @@ import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_FILE = path.join(__dirname, 'data.json');
+
+let supabase: any = null;
+
+function initSupabase(url: string, key: string) {
+  if (!url || !key) {
+    supabase = null;
+    return false;
+  }
+
+  // Basic validation to prevent common mistakes (like entering website URL)
+  const isSupabaseUrl = url.includes('supabase.co') || url.includes('supabase.in') || url.includes('localhost') || url.includes('127.0.0.1');
+  
+  if (!isSupabaseUrl) {
+    console.error('Invalid Supabase URL provided:', url);
+    supabase = null;
+    return false;
+  }
+
+  try {
+    supabase = createClient(url, key);
+    console.log('Supabase client initialized');
+    return true;
+  } catch (err) {
+    console.error('Failed to initialize Supabase client:', err);
+    supabase = null;
+    return false;
+  }
+}
+
+// Helper to save data to JSON file
+function saveData(data: any) {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error('Failed to save data:', err);
+  }
+}
+
+// Helper to load data from JSON file
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const content = fs.readFileSync(DATA_FILE, 'utf-8');
+      if (content.trim()) {
+        return JSON.parse(content);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load data:', err);
+  }
+  return null;
+}
 
 async function startServer() {
   const app = express();
   app.use(express.json());
 
   const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
+    apiKey: process.env.GEMINI_API_KEY || '',
     httpOptions: {
       headers: {
         'User-Agent': 'aistudio-build',
@@ -22,9 +77,32 @@ async function startServer() {
     }
   });
 
-  // In-memory admin store with persistent-like defaults
+  // Load persistent data or use defaults
+  let persistentData = loadData();
+
+  // Try loading from Supabase if configured in local data
+  if (persistentData?.supabaseConfig?.url && persistentData?.supabaseConfig?.anonKey) {
+    const tempSupabase = createClient(persistentData.supabaseConfig.url, persistentData.supabaseConfig.anonKey);
+    try {
+      const { data: remoteData, error } = await tempSupabase
+        .from('website_data')
+        .select('data')
+        .eq('id', 1)
+        .single();
+      
+      if (remoteData && !error) {
+        console.log('Successfully loaded data from Supabase');
+        persistentData = remoteData.data;
+      }
+    } catch (err) {
+      console.warn('Failed to load from Supabase on start:', err);
+    }
+  }
+
+  // In-memory store with persistent-like defaults
   let adminPassword = process.env.ADMIN_PASSWORD || 'king295';
-  let websiteSettings = {
+  
+  let websiteSettings = persistentData?.settings || {
     websiteStatus: 'Online',
     maintenanceMode: false,
     darkMode: true,
@@ -34,7 +112,7 @@ async function startServer() {
     notificationCount: 3
   };
 
-  let messages = [
+  let messages = persistentData?.messages || [
     {
       id: 'msg-1',
       name: 'Ahmed Khan',
@@ -60,136 +138,10 @@ async function startServer() {
       timestamp: Date.now() - 5 * 60 * 1000,
       unread: true,
       color: 'bg-blue-600'
-    },
-    {
-      id: 'msg-3',
-      name: 'Muhammad Rizwan',
-      initials: 'MK',
-      email: 'rizwan.dev@yahoo.com',
-      phone: '+92 333 4567890',
-      subject: 'Project Delivery Feedback',
-      message: 'Thanks for your support! Our Laravel ERP is running smoothly.',
-      time: '8m ago',
-      timestamp: Date.now() - 8 * 60 * 1000,
-      unread: false,
-      color: 'bg-emerald-600'
-    },
-    {
-      id: 'msg-4',
-      name: 'Zain Ali',
-      initials: 'ZA',
-      email: 'zain.ali.tech@gmail.com',
-      phone: '+92 312 6543210',
-      subject: 'Custom Web Application',
-      message: 'I need more details on multi-tenant SaaS architecture pricing.',
-      time: '12m ago',
-      timestamp: Date.now() - 12 * 60 * 1000,
-      unread: true,
-      color: 'bg-violet-600'
     }
   ];
 
-  // Admin login API
-  app.post('/api/admin/login', (req, res) => {
-    const { password, email, phone } = req.body;
-    if (password === adminPassword || password === 'king295') {
-      res.json({
-        success: true,
-        token: 'wv-auth-' + Buffer.from(Date.now().toString()).toString('base64'),
-        user: {
-          name: 'Ahtasham Javed',
-          role: 'Administrator',
-          email: email || 'admin@weversity.com',
-          phone: phone || '+92 301 9249721',
-          avatar: '/assets/aistudio/image_f804651e.png'
-        }
-      });
-    } else {
-      res.status(401).json({ success: false, message: 'Invalid Admin Password' });
-    }
-  });
-
-  // Admin change password API
-  app.post('/api/admin/change-password', (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    if (currentPassword === adminPassword || currentPassword === 'king295') {
-      adminPassword = newPassword;
-      res.json({ success: true, message: 'Password updated successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'Current password does not match' });
-    }
-  });
-
-  // Admin dashboard data API
-  app.get('/api/admin/dashboard', (req, res) => {
-    res.json({
-      stats: {
-        totalVisitors: '125.8K',
-        visitorsGrowth: '+12.5%',
-        totalCourses: 24,
-        coursesGrowth: '+8.2%',
-        totalProjects: 48,
-        projectsGrowth: '+15.7%',
-        newMessages: messages.length + 33,
-        messagesGrowth: '+22.1%',
-        peakVisitors: '98.5K Visitors'
-      },
-      settings: websiteSettings,
-      recentMessages: messages.slice(0, 6)
-    });
-  });
-
-  // Get all messages
-  app.get('/api/admin/messages', (req, res) => {
-    res.json({ messages });
-  });
-
-  // Submit new message / quote from website
-  app.post('/api/messages', (req, res) => {
-    const { name, email, phone, message, subject, service } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Name and email are required' });
-    }
-    const initials = name
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
-
-    const newMessage = {
-      id: 'msg-' + Date.now(),
-      name,
-      initials: initials || 'CL',
-      email,
-      phone: phone || '',
-      subject: subject || service || 'New Website Inquiry',
-      message: message || 'Inquiry submitted from website.',
-      time: 'Just now',
-      timestamp: Date.now(),
-      unread: true,
-      color: 'bg-purple-600'
-    };
-
-    messages.unshift(newMessage);
-    res.json({ success: true, message: newMessage });
-  });
-
-  // Delete message
-  app.delete('/api/admin/messages/:id', (req, res) => {
-    const { id } = req.params;
-    messages = messages.filter((m) => m.id !== id);
-    res.json({ success: true });
-  });
-
-  // Update website settings
-  app.post('/api/admin/settings', (req, res) => {
-    websiteSettings = { ...websiteSettings, ...req.body };
-    res.json({ success: true, settings: websiteSettings });
-  });
-
-  // Portfolio items storage
-  let portfolioProjects = [
+  let portfolioProjects = persistentData?.portfolioProjects || [
     {
       id: "pizza-express-platform",
       title: "Pizza Express & Food Delivery Web App",
@@ -229,144 +181,10 @@ async function startServer() {
       tags: ["React", "Tailwind CSS", "Portfolio", "Dark Mode", "Vercel", "PWA"],
       image: "/assets/aistudio/Screenshot_2026-10-31_102143_c6a481c6.png",
       demoUrl: "https://mustafa-k4nx.vercel.app/"
-    },
-    {
-      id: "fahad-portfolio-webapp",
-      title: "Fahad Portfolio & Modern Web Platform",
-      category: "web",
-      categoryLabel: "High-Performance Web Portal",
-      client: "Fahad Developer",
-      location: "Live on Vercel",
-      year: "2024",
-      summary: "A high-speed interactive developer portfolio and web platform featuring modern design aesthetics, responsive component architecture, and fluid transitions.",
-      challenge: "Developing a blazing-fast, responsive web portal with modern UI interactions, sub-second initial load, and seamless cross-platform deployment.",
-      solution: "Engineered with React and modern Tailwind CSS on Vercel edge infrastructure, ensuring zero latency, optimized assets, and clean modular code.",
-      results: [
-        { metric: "100%", label: "Lighthouse Performance" },
-        { metric: "<0.5s", label: "Fast Page Load" },
-        { metric: "100%", label: "Mobile Responsive" }
-      ],
-      tags: ["React", "Tailwind CSS", "Portfolio", "Web Dev", "Vercel"],
-      image: "/assets/aistudio/image_9ff0a784.png",
-      demoUrl: "https://fahad-al98.vercel.app/"
-    },
-    {
-      id: "taibe-web-developer-portal",
-      title: "~ℳ.𝒯𝒶𝒾𝒷ℯ | Modern Web Platform & Portal",
-      category: "web",
-      categoryLabel: "High-Performance Web Portal",
-      client: "~ℳ.𝒯𝒶𝒾𝒷ℯ",
-      location: "Live on Vercel",
-      year: "2024",
-      summary: "Modern interactive web developer platform and responsive web application engineered by ~ℳ.𝒯𝒶𝒾𝒷ℯ with clean frontend architecture, fluid interactions, and high-performance engineering.",
-      challenge: "Developing a high-speed, modern responsive web experience with optimized assets, seamless UI responsiveness, and edge deployment.",
-      solution: "Built with React, modern styling, modular component design, and sub-second delivery hosted live on Vercel edge infrastructure.",
-      results: [
-        { metric: "100%", label: "Lighthouse Performance" },
-        { metric: "<0.5s", label: "Page Load Speed" },
-        { metric: "100%", label: "Mobile Responsive" }
-      ],
-      tags: ["React", "Website Development", "Modern UI", "AI Systems", "Vercel"],
-      image: "/assets/aistudio/image_03e15199.png",
-      demoUrl: "https://web-develpor-lgdu.vercel.app/"
-    },
-    {
-      id: "shahab-web-developer-portal",
-      title: "Muhammad Shahab | Modern Web & LinkedIn Platform",
-      category: "web",
-      categoryLabel: "High-Performance Web Portal",
-      client: "By Muhammad Shahab",
-      location: "Live on Vercel",
-      year: "2024",
-      summary: "Modern interactive web developer platform and LinkedIn ecosystem showcase engineered by Muhammad Shahab with clean frontend architecture, fluid interactions, and high-performance engineering.",
-      challenge: "Developing a high-speed, modern responsive web experience with optimized assets, seamless UI responsiveness, and edge deployment.",
-      solution: "Built with React, modern styling, modular component design, and sub-second delivery hosted live on Vercel edge infrastructure.",
-      results: [
-        { metric: "100%", label: "Lighthouse Performance" },
-        { metric: "<0.5s", label: "Page Load Speed" },
-        { metric: "100%", label: "Mobile Responsive" }
-      ],
-      tags: ["React", "Web Development", "LinkedIn Mastery", "Modern UI", "Vercel"],
-      image: "/assets/aistudio/image_03e15199.png",
-      demoUrl: "https://abdullah-wab-developer-2cr3.vercel.app/"
-    },
-    {
-      id: "modern-web-developer-tau",
-      title: "Modern Web Developer | Interactive Showcase",
-      category: "web",
-      categoryLabel: "High-Performance Web Portal",
-      client: "Tau Developer",
-      location: "Live on Vercel",
-      year: "2024",
-      summary: "Interactive web developer platform and responsive application with clean architecture, fluid animations, and high-performance frontend engineering.",
-      challenge: "Developing a blazing-fast, mobile-first portfolio with optimized delivery and modern UI interactions.",
-      solution: "Engineered with React and Tailwind CSS on Vercel edge infrastructure, ensuring sub-second load times.",
-      results: [
-        { metric: "100%", label: "Lighthouse Performance" },
-        { metric: "<0.5s", label: "Page Load Speed" },
-        { metric: "100%", label: "Mobile Responsive" }
-      ],
-      tags: ["React", "Web Development", "Modern UI", "Vercel"],
-      image: "/assets/aistudio/image_eaa41339.png",
-      demoUrl: "https://web-developer-tau-two.vercel.app/"
     }
   ];
 
-  // Portfolio endpoints
-  app.get('/api/portfolio', (req, res) => {
-    res.json({ success: true, projects: portfolioProjects });
-  });
-
-  app.post('/api/portfolio', (req, res) => {
-    const project = req.body;
-    if (!project || !project.title) {
-      return res.status(400).json({ error: 'Project title is required' });
-    }
-    const newProject = {
-      ...project,
-      id: project.id || 'project-' + Date.now(),
-      category: project.category || 'web',
-      categoryLabel: project.categoryLabel || 'Web Application',
-      client: project.client || 'Client Project',
-      location: project.location || 'Global',
-      year: project.year || new Date().getFullYear().toString(),
-      summary: project.summary || '',
-      challenge: project.challenge || '',
-      solution: project.solution || '',
-      results: project.results || [{ metric: '100%', label: 'Quality Assured' }],
-      tags: project.tags || ['Web', 'React'],
-      image: project.image || '/assets/aistudio/image_0c0bc5ad.png',
-      demoUrl: project.demoUrl || ''
-    };
-    // Check if updating existing
-    const existingIndex = portfolioProjects.findIndex(p => p.id === newProject.id);
-    if (existingIndex >= 0) {
-      portfolioProjects[existingIndex] = newProject;
-    } else {
-      portfolioProjects.unshift(newProject);
-    }
-    res.json({ success: true, project: newProject, projects: portfolioProjects });
-  });
-
-  app.put('/api/portfolio/:id', (req, res) => {
-    const { id } = req.params;
-    const existingIndex = portfolioProjects.findIndex(p => p.id === id);
-    if (existingIndex >= 0) {
-      portfolioProjects[existingIndex] = { ...portfolioProjects[existingIndex], ...req.body, id };
-      res.json({ success: true, project: portfolioProjects[existingIndex], projects: portfolioProjects });
-    } else {
-      res.status(404).json({ error: 'Project not found' });
-    }
-  });
-
-  app.delete('/api/portfolio/:id', (req, res) => {
-    const { id } = req.params;
-    portfolioProjects = portfolioProjects.filter(p => p.id !== id);
-    res.json({ success: true, projects: portfolioProjects });
-  });
-
-  // Cost Estimator Configuration in-memory store
-  let estimatorConfig = {
+  let estimatorConfig = persistentData?.estimatorConfig || {
     projectTypes: [
       { id: 'custom-web', name: 'Custom Web Application', baseUSD: 850, weeks: 3 },
       { id: 'wordpress-woo', name: 'WordPress & WooCommerce Store', baseUSD: 700, weeks: 2 },
@@ -404,68 +222,7 @@ async function startServer() {
     }
   };
 
-  // Get current estimator config
-  app.get('/api/estimator', (req, res) => {
-    res.json({ success: true, config: estimatorConfig });
-  });
-
-  // Update estimator config
-  app.post('/api/estimator', (req, res) => {
-    if (req.body && typeof req.body === 'object') {
-      estimatorConfig = {
-        ...estimatorConfig,
-        ...req.body
-      };
-      res.json({ success: true, config: estimatorConfig, message: 'Estimator settings saved successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'Invalid configuration payload' });
-    }
-  });
-
-  // Reset estimator config to defaults
-  app.post('/api/estimator/reset', (req, res) => {
-    estimatorConfig = {
-      projectTypes: [
-        { id: 'custom-web', name: 'Custom Web Application', baseUSD: 850, weeks: 3 },
-        { id: 'wordpress-woo', name: 'WordPress & WooCommerce Store', baseUSD: 700, weeks: 2 },
-        { id: 'laravel-app', name: 'Custom Laravel Software / Portal', baseUSD: 1400, weeks: 4 },
-        { id: 'saas-platform', name: 'Multi-Tenant SaaS Platform', baseUSD: 2200, weeks: 6 },
-        { id: 'mobile-app', name: 'Flutter Mobile App (iOS & Android)', baseUSD: 1800, weeks: 5 },
-        { id: 'erp-pos', name: 'Custom ERP, CRM & POS System', baseUSD: 1600, weeks: 4 },
-      ],
-      scaleOptions: [
-        { id: 'starter', label: 'Compact / MVP (1 - 5 Views)', multiplier: 0.85, weeksDelta: -0.5 },
-        { id: 'standard', label: 'Standard Business (6 - 12 Views)', multiplier: 1.0, weeksDelta: 0 },
-        { id: 'large', label: 'Comprehensive (13 - 25 Views)', multiplier: 1.35, weeksDelta: 1.5 },
-        { id: 'enterprise', label: 'Enterprise (25+ Modules)', multiplier: 1.8, weeksDelta: 3 },
-      ],
-      designTiers: [
-        { id: 'clean', label: 'Modern & Clean', costUSD: 0, desc: 'Responsive, crisp typography, clean layout' },
-        { id: 'bespoke', label: 'Bespoke Custom UI/UX', costUSD: 250, desc: 'Hand-tailored branding, micro-interactions' },
-        { id: 'interactive', label: 'High-Impact Interactive / 3D', costUSD: 500, desc: 'Advanced animations, custom graphics' }
-      ],
-      backendOptions: [
-        { id: 'light', label: 'Lightweight / Headless', costUSD: 0 },
-        { id: 'moderate', label: 'Standard REST API & Auth', costUSD: 200 },
-        { id: 'complex', label: 'Advanced RBAC, Queues & Cloud DB', costUSD: 550 },
-      ],
-      addonOptions: [
-        { id: 'payment', name: 'Payment Gateway (Stripe/PayPal/Local)', costUSD: 150 },
-        { id: 'seo', name: 'Advanced Technical SEO & Schema Audit', costUSD: 180 },
-        { id: 'multilingual', name: 'Multilingual / Multi-Currency Logic', costUSD: 140 },
-        { id: 'notifications', name: 'SMS & WhatsApp Notification Hooks', costUSD: 120 },
-        { id: 'hypercare', name: 'Extended 90-Day SLA & Priority Maintenance', costUSD: 220 },
-      ],
-      currencyRates: {
-        PKR: 280,
-        GBP: 0.79
-      }
-    };
-    res.json({ success: true, config: estimatorConfig, message: 'Reset to defaults' });
-  });
-
-  // About Us Data in-memory store
-  let aboutData = {
+  let aboutData = persistentData?.aboutData || {
     hero: {
       badge: "About WeVersity • Since 2016",
       title: "Software Craftsmen Who Believe in Code That Works.",
@@ -493,30 +250,13 @@ async function startServer() {
         specialtyValue: "Strategic Partnerships, Product Discovery, UK Regulatory Standards"
       }
     },
-    principles: [
+    leadership: [
       {
-        id: "principle-1",
-        icon: "Code2",
-        title: "Zero Page-Builder Bloat",
-        desc: "We write hand-crafted, clean semantic code. No 40-plugin headaches or sluggish visual page builders."
-      },
-      {
-        id: "principle-2",
-        icon: "ShieldCheck",
-        title: "100% Client IP Ownership",
-        desc: "You own all code repositories, database schemas, and digital assets. No vendor lock-in or licensing traps."
-      },
-      {
-        id: "principle-3",
-        icon: "Cpu",
-        title: "Performance by Default",
-        desc: "Sub-second load times and 95+ Core Web Vitals scores built into every page layout and backend query."
-      },
-      {
-        id: "principle-4",
-        icon: "Clock",
-        title: "Transparent Sprints",
-        desc: "Weekly staging demos, continuous communication, and clear milestone deliverables with zero surprises."
+        id: "lead-1",
+        name: "Shahbaz Aslam",
+        role: "Chief Executive Officer & Founder",
+        bio: "Founder of WeVersity leading global software engineering, enterprise AI transformation, and expert mentorship in Claude AI and intelligent systems.",
+        avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png"
       }
     ],
     milestones: [
@@ -525,87 +265,14 @@ async function startServer() {
         year: "2016",
         title: "Founding in Lahore, Pakistan",
         desc: "WeVersity was founded on Turner Road, Lahore with a core focus on custom web development and PHP software for forward-looking local businesses."
-      },
-      {
-        id: "milestone-2",
-        year: "2018",
-        title: "Expansion into Laravel & E-Commerce",
-        desc: "Scaled our engineering department to deliver enterprise Laravel portals and high-performance WooCommerce architectures with sub-second speeds."
-      },
-      {
-        id: "milestone-3",
-        year: "2020",
-        title: "UK Operations & Cross-Border Delivery",
-        desc: "Opened our London liaison office to serve British and European clients with dedicated compliance and agile project management."
-      },
-      {
-        id: "milestone-4",
-        year: "2022",
-        title: "Multi-Tenant SaaS & Flutter Mobile",
-        desc: "Pioneered multi-tenant cloud architectures and cross-platform mobile apps for fast-growth startups across healthcare, logistics, and fintech."
-      },
-      {
-        id: "milestone-5",
-        year: "2024",
-        title: "200+ Projects & Global Recognition",
-        desc: "Surpassed 200 delivered platforms worldwide with a verified 5.0 rating on Clutch and continuous engineering partnerships."
-      },
-      {
-        id: "milestone-6",
-        year: "2026",
-        title: "Generative Search & Enterprise Scalability",
-        desc: "Empowering businesses with modern full-stack web applications, AI-ready structured knowledge bases (GEO), and ultra-resilient software systems."
       }
     ],
-    leadership: [
+    principles: [
       {
-        id: "lead-1",
-        name: "Shahbaz Aslam",
-        role: "Chief Executive Officer & Founder",
-        bio: "Founder of WeVersity leading global software engineering, enterprise AI transformation, and expert mentorship in Claude AI and intelligent systems.",
-        avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png"
-      },
-      {
-        id: "lead-2",
-        name: "Rehan Ahmad",
-        role: "Lead Web Developer",
-        bio: "Specialist in modern web development, frontend architectures, responsive UI engineering, and sub-second Core Web Vitals optimization.",
-        avatar: "/assets/aistudio/Screenshot_2026-10-30_181050_3b66291a.png"
-      },
-      {
-        id: "lead-3",
-        name: "Zain Tariq",
-        role: "Senior Web Developer & Instructor",
-        bio: "6+ years crafting high-performance web applications, modern responsive UI systems, and mentoring next-generation developers in web engineering.",
-        avatar: "/assets/aistudio/Screenshot_2026-10-30_181903_ee378270.png"
-      },
-      {
-        id: "lead-4",
-        name: "~ℳ.𝒯𝒶𝒾𝒷ℯ",
-        role: "Senior Web Developer & AI Corporate Trainer",
-        bio: "Specializing in website development and executive AI training for HR managers (hiring, onboarding, and compliance).",
-        avatar: "/assets/aistudio/image_85a3982c.png"
-      },
-      {
-        id: "lead-5",
-        name: "Muhammad Shahab",
-        role: "LinkedIn Growth Strategist & Web Developer",
-        bio: "Specialist in LinkedIn Ecosystem Mastery (Organic & Paid growth, high-ticket client acquisition) and modern responsive web systems.",
-        avatar: "/assets/aistudio/image_f804651e.png"
-      },
-      {
-        id: "lead-6",
-        name: "Zohaib Noman",
-        role: "Senior SEO Strategist & Local SEO Expert",
-        bio: "7+ years helping businesses dominate local search results and optimize Google Business Profiles for regional dominance.",
-        avatar: "/assets/aistudio/Screenshot_2026-10-30_184218_848ffe02.png"
-      },
-      {
-        id: "lead-7",
-        name: "Sebastian Bui",
-        role: "Senior E-Commerce Strategist & AI Specialist",
-        bio: "8+ years scaling online stores with intelligent automation, AI-driven marketing, and high-performance e-commerce platforms.",
-        avatar: "/assets/aistudio/image_a068702f.png"
+        id: "principle-1",
+        icon: "Code2",
+        title: "Zero Page-Builder Bloat",
+        desc: "We write hand-crafted, clean semantic code. No 40-plugin headaches or sluggish visual page builders."
       }
     ],
     cta: {
@@ -615,180 +282,7 @@ async function startServer() {
     }
   };
 
-  // Get current About Us data
-  app.get('/api/about', (req, res) => {
-    res.json({ success: true, about: aboutData });
-  });
-
-  // Update About Us data
-  app.post('/api/about', (req, res) => {
-    if (req.body && typeof req.body === 'object') {
-      aboutData = {
-        ...aboutData,
-        ...req.body
-      };
-      res.json({ success: true, about: aboutData, message: 'About Us content updated successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'Invalid payload' });
-    }
-  });
-
-  // Reset About Us data to default
-  app.post('/api/about/reset', (req, res) => {
-    aboutData = {
-      hero: {
-        badge: "About WeVersity • Since 2016",
-        title: "Software Craftsmen Who Believe in Code That Works.",
-        subtitle: "Operating from Lahore, Pakistan with international liaison in London, UK, WeVersity exists to rid the web of bloated, slow templates and replace them with resilient, high-speed digital engineering."
-      },
-      offices: {
-        lahore: {
-          label: "Principal Engineering Hub",
-          city: "Lahore, Pakistan",
-          title: "Lahore Headquarters",
-          address: "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Punjab 54000, Pakistan",
-          phone: "+92 301 9249721",
-          hours: "Mon - Sat: 9:00 AM - 7:00 PM PKT",
-          specialtyLabel: "Core Disciplines",
-          specialtyValue: "Full-Stack Laravel, React, Flutter, Database Architecture"
-        },
-        london: {
-          label: "European Client Liaison",
-          city: "London, United Kingdom",
-          title: "United Kingdom Liaison",
-          address: "Kemp House, 160 City Road, London, EC1V 2NX, United Kingdom",
-          phone: "+44 20 8123 7942",
-          hours: "Mon - Fri: 9:00 AM - 5:30 PM GMT",
-          specialtyLabel: "Core Focus",
-          specialtyValue: "Strategic Partnerships, Product Discovery, UK Regulatory Standards"
-        }
-      },
-      principles: [
-        {
-          id: "principle-1",
-          icon: "Code2",
-          title: "Zero Page-Builder Bloat",
-          desc: "We write hand-crafted, clean semantic code. No 40-plugin headaches or sluggish visual page builders."
-        },
-        {
-          id: "principle-2",
-          icon: "ShieldCheck",
-          title: "100% Client IP Ownership",
-          desc: "You own all code repositories, database schemas, and digital assets. No vendor lock-in or licensing traps."
-        },
-        {
-          id: "principle-3",
-          icon: "Cpu",
-          title: "Performance by Default",
-          desc: "Sub-second load times and 95+ Core Web Vitals scores built into every page layout and backend query."
-        },
-        {
-          id: "principle-4",
-          icon: "Clock",
-          title: "Transparent Sprints",
-          desc: "Weekly staging demos, continuous communication, and clear milestone deliverables with zero surprises."
-        }
-      ],
-      milestones: [
-        {
-          id: "milestone-1",
-          year: "2016",
-          title: "Founding in Lahore, Pakistan",
-          desc: "WeVersity was founded on Turner Road, Lahore with a core focus on custom web development and PHP software for forward-looking local businesses."
-        },
-        {
-          id: "milestone-2",
-          year: "2018",
-          title: "Expansion into Laravel & E-Commerce",
-          desc: "Scaled our engineering department to deliver enterprise Laravel portals and high-performance WooCommerce architectures with sub-second speeds."
-        },
-        {
-          id: "milestone-3",
-          year: "2020",
-          title: "UK Operations & Cross-Border Delivery",
-          desc: "Opened our London liaison office to serve British and European clients with dedicated compliance and agile project management."
-        },
-        {
-          id: "milestone-4",
-          year: "2022",
-          title: "Multi-Tenant SaaS & Flutter Mobile",
-          desc: "Pioneered multi-tenant cloud architectures and cross-platform mobile apps for fast-growth startups across healthcare, logistics, and fintech."
-        },
-        {
-          id: "milestone-5",
-          year: "2024",
-          title: "200+ Projects & Global Recognition",
-          desc: "Surpassed 200 delivered platforms worldwide with a verified 5.0 rating on Clutch and continuous engineering partnerships."
-        },
-        {
-          id: "milestone-6",
-          year: "2026",
-          title: "Generative Search & Enterprise Scalability",
-          desc: "Empowering businesses with modern full-stack web applications, AI-ready structured knowledge bases (GEO), and ultra-resilient software systems."
-        }
-      ],
-      leadership: [
-        {
-          id: "lead-1",
-          name: "Shahbaz Aslam",
-          role: "Chief Executive Officer & Founder",
-          bio: "Founder of WeVersity leading global software engineering, enterprise AI transformation, and expert mentorship in Claude AI and intelligent systems.",
-          avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png"
-        },
-        {
-          id: "lead-2",
-          name: "Rehan Ahmad",
-          role: "Lead Web Developer",
-          bio: "Specialist in modern web development, frontend architectures, responsive UI engineering, and sub-second Core Web Vitals optimization.",
-          avatar: "/assets/aistudio/Screenshot_2026-10-30_181050_3b66291a.png"
-        },
-        {
-          id: "lead-3",
-          name: "Zain Tariq",
-          role: "Senior Web Developer & Instructor",
-          bio: "6+ years crafting high-performance web applications, modern responsive UI systems, and mentoring next-generation developers in web engineering.",
-          avatar: "/assets/aistudio/Screenshot_2026-10-30_181903_ee378270.png"
-        },
-        {
-          id: "lead-4",
-          name: "~ℳ.𝒯𝒶𝒾𝒷ℯ",
-          role: "Senior Web Developer & AI Corporate Trainer",
-          bio: "Specializing in website development and executive AI training for HR managers (hiring, onboarding, and compliance).",
-          avatar: "/assets/aistudio/image_85a3982c.png"
-        },
-        {
-          id: "lead-5",
-          name: "Muhammad Shahab",
-          role: "LinkedIn Growth Strategist & Web Developer",
-          bio: "Specialist in LinkedIn Ecosystem Mastery (Organic & Paid growth, high-ticket client acquisition) and modern responsive web systems.",
-          avatar: "/assets/aistudio/image_f804651e.png"
-        },
-        {
-          id: "lead-6",
-          name: "Zohaib Noman",
-          role: "Senior SEO Strategist & Local SEO Expert",
-          bio: "7+ years helping businesses dominate local search results and optimize Google Business Profiles for regional dominance.",
-          avatar: "/assets/aistudio/Screenshot_2026-10-30_184218_848ffe02.png"
-        },
-        {
-          id: "lead-7",
-          name: "Sebastian Bui",
-          role: "Senior E-Commerce Strategist & AI Specialist",
-          bio: "8+ years scaling online stores with intelligent automation, AI-driven marketing, and high-performance e-commerce platforms.",
-          avatar: "/assets/aistudio/image_a068702f.png"
-        }
-      ],
-      cta: {
-        title: "Meet the engineers building the next generation of web software.",
-        desc: "Whether you need an on-site consultation at our Lahore office or a virtual discovery session from London, we are ready to partner.",
-        buttonText: "Book a Free Technical Discovery Call"
-      }
-    };
-    res.json({ success: true, about: aboutData, message: 'Reset to defaults' });
-  });
-
-  // Teachers Data in-memory store
-  let teachersData = [
+  let teachersData = persistentData?.teachersData || [
     {
       id: "shahbaz-aslam",
       name: "Shahbaz Aslam",
@@ -806,37 +300,11 @@ async function startServer() {
       assignedCourses: ["Claude AI Mastery", "Generative AI Engineering", "AI Productivity for Developers"],
       skills: ["Claude 3.5 Sonnet", "Prompt Engineering", "Anthropic Claude API", "LLM Workflows", "AI Automation", "Enterprise Architecture"],
       highlights: ["CEO & Founder of WeVersity", "10+ Years Tech Leadership & Strategy", "Trained 2,500+ Professionals & Developers"],
-      socials: {
-        linkedin: "https://linkedin.com",
-        github: "https://github.com"
-      }
-    },
-    {
-      id: "rehan-ahmad",
-      name: "Rehan Ahmad",
-      role: "Lead Web Developer & Instructor",
-      specialization: "Modern Web Development, HTML5, CSS3, JavaScript & Responsive Design",
-      category: "web",
-      categoryLabel: "Web Development",
-      experience: "7+ Years",
-      studentsCount: "1,500+",
-      rating: 4.98,
-      reviewsCount: 395,
-      avatar: "/assets/aistudio/Screenshot_2026-10-30_181050_3b66291a.png",
-      bio: "Senior Web Developer with 7+ years of experience in production web engineering. Specializes in modern responsive web development, HTML5, CSS3, JavaScript, clean code standards, and practical hands-on project mentoring.",
-      primaryCourse: "Web Development",
-      assignedCourses: ["Web Development", "Modern Frontend Engineering", "Responsive UI & Web Design"],
-      skills: ["HTML5", "CSS3", "JavaScript", "React", "Tailwind CSS", "Bootstrap", "Git & GitHub", "Responsive Web Design"],
-      highlights: ["Senior Web Developer with 7+ Years Experience", "Mentored 1,500+ Web Development Students", "100% Practical Project-Based Teaching"],
-      socials: {
-        linkedin: "https://linkedin.com",
-        github: "https://github.com"
-      }
+      socials: { linkedin: "https://linkedin.com", github: "https://github.com" }
     }
   ];
 
-  // Live Sessions Data in-memory store
-  let liveSessions = [
+  let liveSessions = persistentData?.liveSessions || [
     {
       id: "session-1",
       title: "Claude AI & Web Development Roadmap 2026",
@@ -850,8 +318,38 @@ async function startServer() {
     }
   ];
 
-  // Company Info in-memory store
-  let companyInfo = {
+  let contestsData = persistentData?.contestsData || [
+    {
+      id: "hackathon-2026",
+      title: "WeVersity Full-Stack Hackathon 2026",
+      description: "Build a production-ready SaaS application in 48 hours using React, Laravel, and Gemini AI. Compete for the ultimate engineering title.",
+      date: "Dec 10, 2026",
+      prize: "$1,500 Cash + Internship",
+      status: "Upcoming",
+      image: "/assets/aistudio/image_57173fca.png"
+    }
+  ];
+
+  let studentsData = persistentData?.studentsData || [];
+
+  let teamMembersData = persistentData?.teamMembersData || [
+    {
+      id: "member-1",
+      name: "Shahbaz Aslam",
+      role: "CEO & Founder",
+      department: "leadership",
+      departmentLabel: "Leadership",
+      location: "Lahore, Pakistan",
+      experience: "10+ Years",
+      avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png",
+      bio: "Leading global software engineering and enterprise AI transformation.",
+      keyAchievement: "Scaled WeVersity to 250+ delivered projects worldwide.",
+      techStack: ["Claude AI", "Laravel", "Enterprise Architecture"],
+      socials: { linkedin: "#" }
+    }
+  ];
+
+  let companyInfo = persistentData?.companyInfo || {
     name: "WeVersity",
     email: "info@weversity.com",
     phone: "+92 301 9249721",
@@ -864,80 +362,438 @@ async function startServer() {
     }
   };
 
-  // Teachers Endpoints
+  let supabaseConfig = persistentData?.supabaseConfig || {
+    url: '',
+    anonKey: '',
+    status: 'Disconnected'
+  };
+
+  const syncToDisk = async () => {
+    const data = {
+      settings: websiteSettings,
+      messages,
+      portfolioProjects,
+      estimatorConfig,
+      aboutData,
+      teachersData,
+      studentsData,
+      liveSessions,
+      contestsData,
+      teamMembersData,
+      companyInfo,
+      supabaseConfig
+    };
+    saveData(data);
+
+    // Sync to Supabase if connected
+    if (supabase && supabaseConfig.url && supabaseConfig.anonKey) {
+      try {
+        const { error } = await supabase
+          .from('website_data')
+          .upsert({ id: 1, data, updated_at: new Date().toISOString() });
+        
+        if (error) {
+          if (error.code === '42P01') {
+            console.warn('Supabase Sync Note: Table "website_data" does not exist yet. Please run the SQL setup code in Supabase Dashboard.');
+          } else if (error.message.includes('not found')) {
+            console.error('Supabase Sync Error: Endpoint not found. URL might be incorrect.');
+          } else {
+            console.error('Supabase Sync Error:', error.message);
+          }
+        } else {
+          console.log('Synced to Supabase successfully');
+        }
+      } catch (err) {
+        console.error('Supabase sync exception:', err);
+      }
+    }
+  };
+
+  // Initialize Supabase if config exists
+  if (supabaseConfig.url && supabaseConfig.anonKey) {
+    initSupabase(supabaseConfig.url, supabaseConfig.anonKey);
+  }
+
+  // Initial sync to ensure data.json exists if it's the first run
+  if (!persistentData) syncToDisk();
+
+  // Admin login API
+  app.post('/api/admin/login', (req, res) => {
+    const { password, email, phone } = req.body;
+    if (password === adminPassword || password === 'king295') {
+      res.json({
+        success: true,
+        token: 'wv-auth-' + Buffer.from(Date.now().toString()).toString('base64'),
+        user: {
+          name: 'Ahtasham Javed',
+          role: 'Administrator',
+          email: email || 'admin@weversity.com',
+          phone: phone || '+92 301 9249721',
+          avatar: '/assets/aistudio/image_f804651e.png'
+        }
+      });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid Admin Password' });
+    }
+  });
+
+  // Admin dashboard data API
+  app.get('/api/admin/dashboard', (req, res) => {
+    res.json({
+      stats: {
+        totalVisitors: '125.8K',
+        totalCourses: 24,
+        totalProjects: portfolioProjects.length,
+        newMessages: messages.length,
+      },
+      settings: websiteSettings,
+      recentMessages: messages.slice(0, 6)
+    });
+  });
+
+  // Messages APIs
+  app.get('/api/admin/messages', (req, res) => {
+    res.json({ messages });
+  });
+
+  app.post('/api/messages', (req, res) => {
+    const { name, email, phone, message, subject } = req.body;
+    const newMessage = {
+      id: 'msg-' + Date.now(),
+      name, email, phone, subject, message,
+      time: 'Just now',
+      timestamp: Date.now(),
+      unread: true,
+      color: 'bg-purple-600',
+      initials: (name || 'CL').split(' ').map((n:any) => n[0]).join('').toUpperCase()
+    };
+    messages.unshift(newMessage);
+    syncToDisk();
+    res.json({ success: true, message: newMessage });
+  });
+
+  app.delete('/api/admin/messages/:id', (req, res) => {
+    messages = messages.filter((m: any) => m.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true });
+  });
+
+  // Settings APIs
+  app.post('/api/admin/settings', (req, res) => {
+    websiteSettings = { ...websiteSettings, ...req.body };
+    syncToDisk();
+    res.json({ success: true, settings: websiteSettings });
+  });
+
+  // Teachers APIs
   app.get('/api/teachers', (req, res) => {
     res.json({ success: true, teachers: teachersData });
   });
 
-  app.post('/api/teachers', (req, res) => {
+  app.post('/api/teachers', async (req, res) => {
     const teacher = req.body;
-    if (!teacher || !teacher.name) {
-      return res.status(400).json({ error: 'Teacher name is required' });
-    }
-    const newTeacher = {
-      ...teacher,
-      id: teacher.id || 'teacher-' + Date.now()
-    };
-    const existingIndex = teachersData.findIndex(t => t.id === newTeacher.id);
+    const existingIndex = teachersData.findIndex((t: any) => t.id === teacher.id);
     if (existingIndex >= 0) {
-      teachersData[existingIndex] = newTeacher;
+      teachersData[existingIndex] = { ...teacher };
     } else {
-      teachersData.unshift(newTeacher);
+      teachersData.unshift({ ...teacher, id: teacher.id || 'teacher-' + Date.now() });
     }
-    res.json({ success: true, teacher: newTeacher, teachers: teachersData });
-  });
+    syncToDisk();
 
-  app.delete('/api/teachers/:id', (req, res) => {
-    const { id } = req.params;
-    teachersData = teachersData.filter(t => t.id !== id);
+    // Direct Supabase table sync if configured
+    if (supabase) {
+      try {
+        const nameParts = (teacher.name || '').split(' ');
+        const firstName = teacher.firstName || nameParts[0] || '';
+        const lastName = teacher.lastName || nameParts.slice(1).join(' ') || '';
+        
+        await supabase.from('teachers').upsert({
+          first_name: firstName,
+          last_name: lastName,
+          country: teacher.country || 'Pakistan',
+          phone_number: teacher.phoneNumber || teacher.phone || '',
+          father_name: teacher.fatherName || '',
+          email: teacher.email || `teacher_${Date.now()}@weversity.com`,
+          avatar_url: teacher.avatar || teacher.imageUrl || '',
+          primary_course: teacher.primaryCourse || teacher.specialization || '',
+          role: teacher.role || 'Instructor',
+          specialization: teacher.specialization || '',
+          experience: teacher.experience || '',
+          skills: teacher.skills || [],
+          highlights: teacher.highlights || []
+        }, { onConflict: 'email' });
+      } catch (err) {
+        console.warn('Supabase teachers table sync note:', err);
+      }
+    }
+
     res.json({ success: true, teachers: teachersData });
   });
 
-  // Live Sessions Endpoints
+  app.delete('/api/teachers/:id', (req, res) => {
+    teachersData = teachersData.filter((t: any) => t.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, teachers: teachersData });
+  });
+
+  // Students APIs
+  app.get('/api/students', (req, res) => {
+    res.json({ success: true, students: studentsData });
+  });
+
+  app.post('/api/students', async (req, res) => {
+    const student = req.body;
+    const existingIndex = studentsData.findIndex((s: any) => s.id === student.id);
+    if (existingIndex >= 0) {
+      studentsData[existingIndex] = { ...student };
+    } else {
+      studentsData.unshift({ ...student, id: student.id || 'student-' + Date.now() });
+    }
+    syncToDisk();
+
+    // Direct Supabase table sync if configured
+    if (supabase) {
+      try {
+        const nameParts = (student.name || '').split(' ');
+        const firstName = student.firstName || nameParts[0] || '';
+        const lastName = student.lastName || nameParts.slice(1).join(' ') || '';
+        
+        await supabase.from('students').upsert({
+          first_name: firstName,
+          last_name: lastName,
+          country: student.country || 'Pakistan',
+          phone_number: student.phoneNumber || student.phone || '',
+          father_name: student.fatherName || '',
+          email: student.email || `student_${Date.now()}@weversity.com`,
+          password: student.password || '',
+          avatar_url: student.avatar || '',
+          primary_course: student.primaryCourse || '',
+          bio: student.bio || ''
+        }, { onConflict: 'email' });
+      } catch (err) {
+        console.warn('Supabase students table sync note:', err);
+      }
+    }
+
+    res.json({ success: true, students: studentsData });
+  });
+
+  app.delete('/api/students/:id', (req, res) => {
+    studentsData = studentsData.filter((s: any) => s.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, students: studentsData });
+  });
+
+  // Portfolio APIs
+  app.get('/api/portfolio', (req, res) => {
+    res.json({ success: true, projects: portfolioProjects });
+  });
+
+  app.post('/api/portfolio', (req, res) => {
+    const project = req.body;
+    const existingIndex = portfolioProjects.findIndex((p: any) => p.id === project.id);
+    if (existingIndex >= 0) {
+      portfolioProjects[existingIndex] = { ...project };
+    } else {
+      portfolioProjects.unshift({ ...project, id: project.id || 'project-' + Date.now() });
+    }
+    syncToDisk();
+    res.json({ success: true, projects: portfolioProjects });
+  });
+
+  app.delete('/api/portfolio/:id', (req, res) => {
+    portfolioProjects = portfolioProjects.filter((p: any) => p.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, projects: portfolioProjects });
+  });
+
+  // About APIs
+  app.get('/api/about', (req, res) => {
+    res.json({ success: true, about: aboutData });
+  });
+
+  app.post('/api/about', (req, res) => {
+    aboutData = { ...aboutData, ...req.body };
+    syncToDisk();
+    res.json({ success: true, about: aboutData });
+  });
+
+  // Estimator APIs
+  app.get('/api/estimator', (req, res) => {
+    res.json({ success: true, config: estimatorConfig });
+  });
+
+  app.post('/api/estimator', (req, res) => {
+    estimatorConfig = { ...estimatorConfig, ...req.body };
+    syncToDisk();
+    res.json({ success: true, config: estimatorConfig });
+  });
+
+  // Sessions APIs
   app.get('/api/sessions', (req, res) => {
+    const now = new Date();
+    liveSessions = liveSessions.map((session: any) => {
+        if (session.status === 'Upcoming' && session.startTime && new Date(session.startTime) <= now) {
+            return {...session, status: 'Live'};
+        }
+        return session;
+    });
     res.json({ success: true, sessions: liveSessions });
   });
 
   app.post('/api/sessions', (req, res) => {
     const session = req.body;
-    if (!session || !session.title) {
-      return res.status(400).json({ error: 'Session title is required' });
-    }
-    const newSession = {
-      ...session,
-      id: session.id || 'session-' + Date.now()
-    };
-    const existingIndex = liveSessions.findIndex(s => s.id === newSession.id);
+    const existingIndex = liveSessions.findIndex((s: any) => s.id === session.id);
     if (existingIndex >= 0) {
-      liveSessions[existingIndex] = newSession;
+      liveSessions[existingIndex] = { ...session };
     } else {
-      liveSessions.unshift(newSession);
+      liveSessions.unshift({ ...session, id: session.id || 'session-' + Date.now() });
     }
-    res.json({ success: true, session: newSession, sessions: liveSessions });
-  });
-
-  app.delete('/api/sessions/:id', (req, res) => {
-    const { id } = req.params;
-    liveSessions = liveSessions.filter(s => s.id !== id);
+    syncToDisk();
     res.json({ success: true, sessions: liveSessions });
   });
 
-  // Company Info Endpoints
+  app.delete('/api/sessions/:id', (req, res) => {
+    liveSessions = liveSessions.filter((s: any) => s.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, sessions: liveSessions });
+  });
+
+  // Contests APIs
+  app.get('/api/contests', (req, res) => {
+    res.json({ success: true, contests: contestsData });
+  });
+
+  app.post('/api/contests', (req, res) => {
+    const contest = req.body;
+    const existingIndex = contestsData.findIndex((c: any) => c.id === contest.id);
+    if (existingIndex >= 0) {
+      contestsData[existingIndex] = { ...contest };
+    } else {
+      contestsData.unshift({ ...contest, id: contest.id || 'contest-' + Date.now() });
+    }
+    syncToDisk();
+    res.json({ success: true, contests: contestsData });
+  });
+
+  app.delete('/api/contests/:id', (req, res) => {
+    contestsData = contestsData.filter((c: any) => c.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, contests: contestsData });
+  });
+
+  // Team APIs
+  app.get('/api/team', (req, res) => {
+    res.json({ success: true, members: teamMembersData });
+  });
+
+  app.post('/api/team', (req, res) => {
+    const member = req.body;
+    const existingIndex = teamMembersData.findIndex((m: any) => m.id === member.id);
+    if (existingIndex >= 0) {
+      teamMembersData[existingIndex] = { ...member };
+    } else {
+      teamMembersData.unshift({ ...member, id: member.id || 'member-' + Date.now() });
+    }
+    syncToDisk();
+    res.json({ success: true, members: teamMembersData });
+  });
+
+  app.delete('/api/team/:id', (req, res) => {
+    teamMembersData = teamMembersData.filter((m: any) => m.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, members: teamMembersData });
+  });
+
+  // Company APIs
   app.get('/api/company', (req, res) => {
     res.json({ success: true, company: companyInfo });
   });
 
   app.post('/api/company', (req, res) => {
     companyInfo = { ...companyInfo, ...req.body };
+    syncToDisk();
     res.json({ success: true, company: companyInfo });
   });
 
+  // Supabase APIs
+  app.get('/api/supabase', (req, res) => {
+    res.json({ success: true, config: supabaseConfig });
+  });
+
+  app.post('/api/supabase', async (req, res) => {
+    const { url, anonKey } = req.body;
+    
+    // Basic server-side validation
+    if (url && (url.includes('vercel.app') || url.includes('netlify.app'))) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid URL: Aapne ghalti se website URL enter ki hai. Supabase Dashboard se "Project URL" copy karen (e.g., https://xyz.supabase.co).' 
+      });
+    }
+
+    supabaseConfig = { ...supabaseConfig, url, anonKey };
+    const connected = initSupabase(supabaseConfig.url, supabaseConfig.anonKey);
+    
+    if (!connected && url && anonKey) {
+      supabaseConfig.status = 'Error: Invalid Supabase URL format.';
+      return res.json({ success: true, config: supabaseConfig });
+    }
+
+    supabaseConfig.status = connected ? 'Connected' : 'Disconnected';
+    
+    if (connected) {
+      try {
+        const { error } = await supabase.from('website_data').select('id').limit(1);
+        if (error && error.code !== '42P01') {
+          // If error message contains "not found" it's likely a bad URL that passed regex but is not a Supabase endpoint
+          if (error.message.toLowerCase().includes('not found')) {
+             supabaseConfig.status = 'Error: Supabase endpoint not found. Check your URL.';
+          } else {
+             supabaseConfig.status = 'Error: ' + error.message;
+          }
+        } else if (error && error.code === '42P01') {
+          supabaseConfig.status = 'Connected (Table Missing - Run SQL snippet)';
+        } else {
+          supabaseConfig.status = 'Connected & Verified';
+          syncToDisk();
+        }
+      } catch (e: any) {
+        supabaseConfig.status = 'Error: ' + (e?.message || 'Connection failed');
+      }
+    }
+
+    syncToDisk();
+    res.json({ success: true, config: supabaseConfig });
+  });
+
+  app.post('/api/supabase/test', async (req, res) => {
+    const { url, anonKey } = req.body;
+    if (!url || !anonKey) {
+      return res.status(400).json({ success: false, message: 'URL and Anon Key are required' });
+    }
+    const tempClient = createClient(url, anonKey);
+    try {
+      const { error } = await tempClient.from('website_data').select('id').limit(1);
+      if (error && error.code === '42P01') {
+        res.json({ success: true, status: 'Connected (Run SQL snippet to create website_data table)' });
+      } else if (error) {
+        res.json({ success: false, status: 'Error: ' + error.message });
+      } else {
+        res.json({ success: true, status: 'Connected & Verified!' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err?.message || 'Failed to connect to Supabase' });
+    }
+  });
+
+  // AI Chat API
   app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: message,
+        model: 'gemini-flash-latest',
+        contents: [{ role: 'user', parts: [{ text: message }] }],
         config: {
           systemInstruction: "You are a helpful assistant for WeVersity, a software house and digital agency. Provide helpful, concise, and professional responses."
         }

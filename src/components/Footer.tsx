@@ -35,8 +35,10 @@ export const Footer: React.FC<FooterProps> = ({
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
-  const brandName = companyInfo?.name || 'WEVERSITY';
-  const brandLogo = companyInfo?.logo || '/assets/aistudio/image_03e15199.png';
+  const brandName = (companyInfo?.name && companyInfo.name !== 'WeVersity') ? companyInfo.name : 'KMAWD';
+  const brandLogo = (companyInfo?.logo && !companyInfo.logo.includes('image_ec98d7d2') && !companyInfo.logo.includes('image_b3d7cc94') && !companyInfo.logo.includes('image_03e15199'))
+    ? companyInfo.logo
+    : '/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png';
   const brandPhone = companyInfo?.phone || COMPANY_INFO.phone;
   const brandEmail = companyInfo?.email || COMPANY_INFO.email;
 
@@ -138,13 +140,13 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
 
             {/* Socials matching WeVersity style */}
-            {/* Socials including TikTok, YouTube, Facebook, WhatsApp, LinkedIn */}
+            {/* Socials including TikTok, YouTube, Facebook, WhatsApp, LinkedIn, GitHub, Clutch */}
             <div className="flex flex-wrap items-center gap-2.5 pt-3">
               <a
                 href={COMPANY_INFO.socials.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#1877F2] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-10 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#1877F2] hover:border-[#1877F2] hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-[#1877F2]/50 cursor-pointer"
                 aria-label="Facebook"
               >
                 <Facebook className="w-4 h-4" />
@@ -153,7 +155,7 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.youtube}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#FF0000] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-10 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#FF0000] hover:border-[#FF0000] hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-[#FF0000]/50 cursor-pointer"
                 aria-label="YouTube"
               >
                 <Youtube className="w-4 h-4" />
@@ -162,7 +164,7 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.tiktok}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-black hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-10 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-black hover:border-pink-500 hover:text-pink-400 transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-pink-500/50 cursor-pointer"
                 aria-label="TikTok"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -173,7 +175,7 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#25D366] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-10 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#25D366] hover:border-[#25D366] hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-[#25D366]/50 cursor-pointer"
                 aria-label="WhatsApp"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
@@ -185,7 +187,7 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#0A66C2] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-10 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#0A66C2] hover:border-[#0A66C2] hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-[#0A66C2]/50 cursor-pointer"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-4 h-4" />
@@ -194,7 +196,7 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#6D28D9] hover:text-white transition-all transform hover:scale-110 shadow-sm"
+                className="w-10 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center text-purple-300 hover:bg-[#6D28D9] hover:border-purple-400 hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-110 hover:shadow-lg hover:shadow-purple-600/50 cursor-pointer"
                 aria-label="GitHub"
               >
                 <Github className="w-4 h-4" />
@@ -203,10 +205,10 @@ export const Footer: React.FC<FooterProps> = ({
                 href={COMPANY_INFO.socials.clutch}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 h-9 rounded-full bg-purple-950 border border-purple-800/60 flex items-center justify-center gap-1.5 text-xs font-semibold text-purple-200 hover:bg-[#6D28D9] hover:text-white transition-all shadow-sm"
+                className="px-4 h-10 rounded-full bg-purple-950/80 border border-purple-800/60 flex items-center justify-center gap-2 text-xs font-bold text-purple-200 hover:bg-gradient-to-r hover:from-[#6D28D9] hover:to-pink-600 hover:border-purple-400 hover:text-white transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 hover:shadow-lg hover:shadow-purple-600/50 cursor-pointer"
                 aria-label="Clutch Profile"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                <ExternalLink className="w-3.5 h-3.5 text-rose-400" />
                 <span>Clutch</span>
               </a>
             </div>
@@ -228,6 +230,16 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button onClick={() => setActiveTab('about')} className="hover:text-white transition-colors text-left">
                   About Us & Story
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setActiveTab('academic')} className="hover:text-white transition-colors text-left">
+                  Academic Programs
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setActiveTab('results')} className="hover:text-white transition-colors text-left">
+                  Student Results
                 </button>
               </li>
               <li>
@@ -271,12 +283,12 @@ export const Footer: React.FC<FooterProps> = ({
             <ul className="space-y-2.5 text-xs sm:text-sm text-purple-300/80">
               <li>
                 <a 
-                  href={COMPANY_INFO.network.weversity} 
+                  href={COMPANY_INFO.network.kmawd} 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="hover:text-white transition-colors flex items-center gap-1.5"
                 >
-                  WeVersity.org
+                  KMAWD.org
                   <ExternalLink className="w-3 h-3 text-purple-400" />
                 </a>
               </li>

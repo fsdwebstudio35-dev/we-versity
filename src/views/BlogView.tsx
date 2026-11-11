@@ -36,19 +36,18 @@ export const BlogView: React.FC<BlogViewProps> = ({
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
-      
-      {/* Header */}
+    <div className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      {/* 1. Header Section matching Courses Style */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200 text-xs font-bold">
-          <BookOpen className="w-3.5 h-3.5" />
-          <span>Engineering Knowledge & Insights</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
+          <span>TECH INSIGHTS</span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-gray-950 tracking-tight">
-          Articles, Playbooks & Tech Trends
+        <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
+          Articles &amp; <span className="text-[#6D28D9]">Playbooks</span>
         </h1>
-        <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-          Deep dives into software architecture, Laravel best practices, high-speed frontend engineering, and search engine optimization written by WeVersity engineers.
+        <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+          Deep dives into software architecture, Laravel best practices, and high-speed engineering written by KMAWD engineers.
         </p>
       </div>
 
@@ -82,61 +81,63 @@ export const BlogView: React.FC<BlogViewProps> = ({
         </div>
       </div>
 
-      {/* Articles Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredPosts.map((post) => (
+      {/* Articles Grid matching Courses 4-column style */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {filteredPosts.map((post, idx) => (
           <div
             key={post.id}
             onClick={() => onSelectArticle(post)}
-            className="group cursor-pointer rounded-3xl bg-white border border-purple-100 hover:border-purple-300 p-6 flex flex-col justify-between space-y-6 shadow-sm hover:shadow-xl hover:shadow-purple-900/10 transition-all duration-300"
+            className={`group p-6 rounded-3xl bg-white transition-all duration-300 flex flex-col justify-between relative overflow-hidden border ${
+              idx % 4 === 0 
+                ? 'border-purple-300 shadow-md shadow-purple-900/5' 
+                : 'border-purple-100/90'
+            } hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 cursor-pointer`}
           >
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200 font-bold">
-                  {post.category}
-                </span>
-                <span className="text-gray-500 flex items-center gap-1 text-[11px]">
-                  <Clock className="w-3 h-3 text-[#6D28D9]" />
-                  {post.readTime}
-                </span>
+              {/* Category Icon Style */}
+              <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:bg-[#6D28D9] group-hover:text-white group-hover:border-[#6D28D9] text-[#6D28D9]">
+                <BookOpen className="w-5 h-5" />
               </div>
 
-              <h3 className="font-display font-bold text-xl text-gray-900 group-hover:text-[#6D28D9] transition-colors leading-snug">
-                {post.title}
-              </h3>
-
-              <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
-                {post.excerpt}
-              </p>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#6D28D9]">
+                    {post.category}
+                  </span>
+                  <span className="text-[9px] text-gray-400 font-bold">{post.date}</span>
+                </div>
+                <h3 className="font-display font-bold text-base text-[#18113C] group-hover:text-[#6D28D9] transition-colors duration-300 line-clamp-2 leading-snug">
+                  {post.title}
+                </h3>
+                <p className="text-xs text-gray-500 group-hover:text-gray-600 mt-2 line-clamp-3 leading-relaxed transition-colors duration-300">
+                  {post.excerpt}
+                </p>
+              </div>
 
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {post.tags.map((t, idx) => (
-                  <span key={idx} className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                {(post.tags || []).slice(0, 2).map((t, i) => (
+                  <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 border border-purple-100">
                     #{t}
                   </span>
                 ))}
               </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src={post.author.avatar}
-                  alt={post.author.name}
-                  className="w-8 h-8 rounded-full object-cover border border-purple-200"
-                />
-                <div>
-                  <div className="text-xs font-bold text-gray-900">{post.author.name}</div>
-                  <div className="text-[10px] text-gray-500">{post.date}</div>
-                </div>
+            {/* Bottom Row */}
+            <div className="pt-5 mt-5 border-t border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img src={post.author.avatar} alt="Author" className="w-6 h-6 rounded-full border border-purple-200" />
+                <span className="text-[10px] font-bold text-gray-500">{post.author.name}</span>
               </div>
 
-              <span className="text-xs font-bold text-[#6D28D9] group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                Read Article <ArrowRight className="w-3.5 h-3.5" />
-              </span>
+              <button
+                className="w-9 h-9 rounded-full bg-[#6D28D9] text-white flex items-center justify-center transition-all duration-300 group-hover:bg-[#5B21B6] group-hover:scale-110 shadow-sm"
+                aria-label="Read more"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
-
           </div>
         ))}
       </div>

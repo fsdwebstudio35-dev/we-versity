@@ -12,9 +12,9 @@ export const SupabaseConnectModal: React.FC<SupabaseConnectModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const [url, setUrl] = useState('');
-  const [anonKey, setAnonKey] = useState('');
-  const [status, setStatus] = useState('Disconnected');
+  const [url, setUrl] = useState('https://omcvimrnemvahuommvbu.supabase.co');
+  const [anonKey, setAnonKey] = useState('sb_publishable_H8IsUdR2bDqeciPmd-2alw_YGfCoveB');
+  const [status, setStatus] = useState('Connected & Verified');
   const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');

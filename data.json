@@ -1,0 +1,582 @@
+{
+  "settings": {
+    "websiteStatus": "Online",
+    "maintenanceMode": false,
+    "darkMode": true,
+    "announcement": "Admissions open for 2026 Live Interactive Cohorts!",
+    "showAnnouncement": true,
+    "currency": "PKR",
+    "notificationCount": 3
+  },
+  "messages": [],
+  "portfolioProjects": [
+    {
+      "id": "project-1793965825098",
+      "title": "King",
+      "category": "web",
+      "categoryLabel": "High-Performance Web Portal",
+      "client": "web developer live ",
+      "location": "Live on Vercel",
+      "year": "2026",
+      "summary": "very good King",
+      "challenge": "Designing an ultra-responsive, modern application with sub-second delivery.",
+      "solution": "Engineered with modern React and Tailwind CSS on Vercel edge infrastructure.",
+      "tags": [
+        "React",
+        "Tailwind CSS",
+        "Vercel"
+      ],
+      "image": "/assets/aistudio/image_03e15199.png",
+      "demoUrl": "https://web-developer-tau-two.vercel.app/",
+      "results": [
+        {
+          "metric": "100%",
+          "label": "Lighthouse Performance"
+        },
+        {
+          "metric": "<0.5s",
+          "label": "Page Load Speed"
+        },
+        {
+          "metric": "100%",
+          "label": "Mobile Responsive"
+        }
+      ]
+    },
+    {
+      "id": "project-1793965603470",
+      "title": "Abdullah wev ",
+      "category": "saas",
+      "categoryLabel": "SaaS Platform & Analytics",
+      "client": "king",
+      "location": "Live on Vercel",
+      "year": "2026",
+      "summary": "king",
+      "challenge": "Designing an ultra-responsive, modern application with sub-second delivery.",
+      "solution": "Engineered with modern React and Tailwind CSS on Vercel edge infrastructure.",
+      "tags": [
+        "React",
+        "Tailwind CSS",
+        "Vercel"
+      ],
+      "image": "/assets/aistudio/hero_illustration_full.png",
+      "demoUrl": "https://web-develpor-lgdu.vercel.app/",
+      "results": [
+        {
+          "metric": "100%",
+          "label": "Lighthouse Performance"
+        },
+        {
+          "metric": "<0.5s",
+          "label": "Page Load Speed"
+        },
+        {
+          "metric": "100%",
+          "label": "Mobile Responsive"
+        }
+      ]
+    },
+    {
+      "id": "pizza-express-platform",
+      "title": "Pizza Express & Food Delivery Web App",
+      "category": "ecommerce",
+      "categoryLabel": "Food Ordering & E-Commerce",
+      "client": "Pizza Express App",
+      "location": "Live on Vercel",
+      "year": "2024",
+      "summary": "High-speed interactive pizza ordering and food delivery web application featuring real-time menu browsing, crust and toppings customizer, and instantaneous checkout.",
+      "challenge": "Designing an ultra-responsive, mobile-first fast-food ordering system with instantaneous cart feedback, topping selections, and sub-second load times.",
+      "solution": "Engineered a high-performance modern React and Tailwind CSS web app deployed on Vercel with instant state synchronization, optimized visuals, and streamlined checkout.",
+      "results": [
+        {
+          "metric": "100%",
+          "label": "Lighthouse Performance"
+        },
+        {
+          "metric": "<0.8s",
+          "label": "Instant Menu Load"
+        },
+        {
+          "metric": "4.9★",
+          "label": "User Satisfaction"
+        }
+      ],
+      "tags": [
+        "React",
+        "Tailwind CSS",
+        "Food Delivery",
+        "E-Commerce",
+        "Vercel"
+      ],
+      "image": "/assets/aistudio/image_0c0bc5ad.png",
+      "demoUrl": "https://pizza-az2a-i6p.vercel.app/"
+    },
+    {
+      "id": "abdullah-developer-portal",
+      "title": "Abdullah Developer | Creative Portfolio & Showcase",
+      "category": "web",
+      "categoryLabel": "High-Performance Web Portal",
+      "client": "Abdullah Developer",
+      "location": "Live on Vercel",
+      "year": "2024",
+      "summary": "High-end interactive creative director and full-stack developer portfolio showcase featuring dark luxury aesthetic, dynamic project case studies, and fluid responsive interactions.",
+      "challenge": "Designing an ultra-clean, high-aesthetic developer showcase with rich typography, custom dark-mode styling, sub-second load times, and progressive web app (PWA) readiness.",
+      "solution": "Engineered a modern React and Tailwind CSS digital showcase deployed on Vercel with optimized typography, service worker caching, and seamless cross-device responsiveness.",
+      "results": [
+        {
+          "metric": "100%",
+          "label": "Lighthouse Performance"
+        },
+        {
+          "metric": "<0.6s",
+          "label": "Instant Load Speed"
+        },
+        {
+          "metric": "PWA",
+          "label": "Offline-Ready Architecture"
+        }
+      ],
+      "tags": [
+        "React",
+        "Tailwind CSS",
+        "Portfolio",
+        "Dark Mode",
+        "Vercel",
+        "PWA"
+      ],
+      "image": "/assets/aistudio/Screenshot_2026-10-31_102143_c6a481c6.png",
+      "demoUrl": "https://mustafa-k4nx.vercel.app/"
+    }
+  ],
+  "estimatorConfig": {
+    "projectTypes": [
+      {
+        "id": "custom-web",
+        "name": "Custom Web Application",
+        "baseUSD": 850,
+        "weeks": 3
+      },
+      {
+        "id": "wordpress-woo",
+        "name": "WordPress & WooCommerce Store",
+        "baseUSD": 700,
+        "weeks": 2
+      },
+      {
+        "id": "laravel-app",
+        "name": "Custom Laravel Software / Portal",
+        "baseUSD": 1400,
+        "weeks": 4
+      },
+      {
+        "id": "saas-platform",
+        "name": "Multi-Tenant SaaS Platform",
+        "baseUSD": 2200,
+        "weeks": 6
+      },
+      {
+        "id": "mobile-app",
+        "name": "Flutter Mobile App (iOS & Android)",
+        "baseUSD": 1800,
+        "weeks": 5
+      },
+      {
+        "id": "erp-pos",
+        "name": "Custom ERP, CRM & POS System",
+        "baseUSD": 1600,
+        "weeks": 4
+      }
+    ],
+    "scaleOptions": [
+      {
+        "id": "starter",
+        "label": "Compact / MVP (1 - 5 Views)",
+        "multiplier": 0.85,
+        "weeksDelta": -0.5
+      },
+      {
+        "id": "standard",
+        "label": "Standard Business (6 - 12 Views)",
+        "multiplier": 1,
+        "weeksDelta": 0
+      },
+      {
+        "id": "large",
+        "label": "Comprehensive (13 - 25 Views)",
+        "multiplier": 1.35,
+        "weeksDelta": 1.5
+      },
+      {
+        "id": "enterprise",
+        "label": "Enterprise (25+ Modules)",
+        "multiplier": 1.8,
+        "weeksDelta": 3
+      }
+    ],
+    "designTiers": [
+      {
+        "id": "clean",
+        "label": "Modern & Clean",
+        "costUSD": 0,
+        "desc": "Responsive, crisp typography, clean layout"
+      },
+      {
+        "id": "bespoke",
+        "label": "Bespoke Custom UI/UX",
+        "costUSD": 250,
+        "desc": "Hand-tailored branding, micro-interactions"
+      },
+      {
+        "id": "interactive",
+        "label": "High-Impact Interactive / 3D",
+        "costUSD": 500,
+        "desc": "Advanced animations, custom graphics"
+      }
+    ],
+    "backendOptions": [
+      {
+        "id": "light",
+        "label": "Lightweight / Headless",
+        "costUSD": 0
+      },
+      {
+        "id": "moderate",
+        "label": "Standard REST API & Auth",
+        "costUSD": 200
+      },
+      {
+        "id": "complex",
+        "label": "Advanced RBAC, Queues & Cloud DB",
+        "costUSD": 550
+      }
+    ],
+    "addonOptions": [
+      {
+        "id": "payment",
+        "name": "Payment Gateway (Stripe/PayPal/Local)",
+        "costUSD": 150
+      },
+      {
+        "id": "seo",
+        "name": "Advanced Technical SEO & Schema Audit",
+        "costUSD": 180
+      },
+      {
+        "id": "multilingual",
+        "name": "Multilingual / Multi-Currency Logic",
+        "costUSD": 140
+      },
+      {
+        "id": "notifications",
+        "name": "SMS & WhatsApp Notification Hooks",
+        "costUSD": 120
+      },
+      {
+        "id": "hypercare",
+        "name": "Extended 90-Day SLA & Priority Maintenance",
+        "costUSD": 220
+      }
+    ],
+    "currencyRates": {
+      "PKR": 280,
+      "GBP": 0.79
+    }
+  },
+  "aboutData": {
+    "hero": {
+      "badge": "About KMAWD • Since 2016",
+      "title": "Software Craftsmen Who Believe in Code That Works.",
+      "subtitle": "Operating from Lahore, Pakistan with international liaison in London, UK, KMAWD exists to rid the web of bloated, slow templates and replace them with resilient, high-speed digital engineering."
+    },
+    "offices": {
+      "lahore": {
+        "label": "Principal Engineering Hub",
+        "city": "Lahore, Pakistan",
+        "title": "Lahore Headquarters",
+        "address": "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Punjab 54000, Pakistan",
+        "phone": "+92 301 9249721",
+        "hours": "Mon - Sat: 9:00 AM - 7:00 PM PKT",
+        "specialtyLabel": "Core Disciplines",
+        "specialtyValue": "Full-Stack Laravel, React, Flutter, Database Architecture"
+      },
+      "london": {
+        "label": "European Client Liaison",
+        "city": "London, United Kingdom",
+        "title": "United Kingdom Liaison",
+        "address": "Kemp House, 160 City Road, London, EC1V 2NX, United Kingdom",
+        "phone": "+44 20 8123 7942",
+        "hours": "Mon - Fri: 9:00 AM - 5:30 PM GMT",
+        "specialtyLabel": "Core Focus",
+        "specialtyValue": "Strategic Partnerships, Product Discovery, UK Regulatory Standards"
+      }
+    },
+    "leadership": [
+      {
+        "id": "lead-1",
+        "name": "Shahbaz Aslam",
+        "role": "Chief Executive Officer & Founder",
+        "bio": "Founder of KMAWD leading global software engineering, enterprise AI transformation, and expert mentorship in Claude AI and intelligent systems.",
+        "avatar": "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png"
+      }
+    ],
+    "milestones": [
+      {
+        "id": "milestone-1",
+        "year": "2016",
+        "title": "Founding in Lahore, Pakistan",
+        "desc": "KMAWD was founded on Turner Road, Lahore with a core focus on custom web development and PHP software for forward-looking local businesses."
+      }
+    ],
+    "principles": [
+      {
+        "id": "principle-1",
+        "icon": "Code2",
+        "title": "Zero Page-Builder Bloat",
+        "desc": "We write hand-crafted, clean semantic code. No 40-plugin headaches or sluggish visual page builders."
+      }
+    ],
+    "cta": {
+      "title": "Meet the engineers building the next generation of web software.",
+      "desc": "Whether you need an on-site consultation at our Lahore office or a virtual discovery session from London, we are ready to partner.",
+      "buttonText": "Book a Free Technical Discovery Call"
+    }
+  },
+  "teachersData": [
+    {
+      "id": "shahbaz-aslam",
+      "name": "Shahbaz Aslam",
+      "role": "CEO & Founder | Lead Claude AI Instructor",
+      "specialization": "Claude AI, Prompt Engineering & Enterprise Generative AI",
+      "category": "ai",
+      "categoryLabel": "CEO & Claude AI",
+      "experience": "10+ Years",
+      "studentsCount": "2,500+",
+      "rating": 5,
+      "reviewsCount": 485,
+      "avatar": "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png",
+      "bio": "Chief Executive Officer & Founder of KMAWD. Industry pioneer in Claude AI architectures, Anthropic LLM prompting, automated development workflows, and enterprise generative AI solutions with 10+ years of tech leadership.",
+      "primaryCourse": "Claude AI Mastery",
+      "assignedCourses": [
+        "Claude AI Mastery",
+        "Generative AI Engineering",
+        "AI Productivity for Developers"
+      ],
+      "skills": [
+        "Claude 3.5 Sonnet",
+        "Prompt Engineering",
+        "Anthropic Claude API",
+        "LLM Workflows",
+        "AI Automation",
+        "Enterprise Architecture"
+      ],
+      "highlights": [
+        "CEO & Founder of KMAWD",
+        "10+ Years Tech Leadership & Strategy",
+        "Trained 2,500+ Professionals & Developers"
+      ],
+      "socials": {
+        "linkedin": "https://linkedin.com",
+        "github": "https://github.com"
+      }
+    }
+  ],
+  "studentsData": [
+    {
+      "name": "Abdullah studio",
+      "email": "fsdwebstudio35@gmail.com",
+      "phoneNumber": "",
+      "fatherName": "",
+      "country": "Pakistan",
+      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "primaryCourse": "Claude AI Mastery",
+      "assignedCourses": [
+        "Claude AI Mastery"
+      ],
+      "bio": "Enrolled student in Claude AI Mastery.",
+      "role": "Registered Student",
+      "specialization": "Claude AI Mastery",
+      "experience": "New Student",
+      "studentsCount": "0",
+      "rating": 5,
+      "reviewsCount": 0,
+      "skills": [
+        "Claude AI Mastery",
+        "Learning"
+      ],
+      "highlights": [
+        "Newly Registered KMAWD Student"
+      ],
+      "socials": {
+        "linkedin": "https://linkedin.com"
+      },
+      "isTeacher": false,
+      "id": "student-1793963979017"
+    },
+    {
+      "name": " ",
+      "email": "amking86871@gmail.com",
+      "phoneNumber": "",
+      "fatherName": "",
+      "country": "Pakistan",
+      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "primaryCourse": "Claude AI Mastery",
+      "assignedCourses": [
+        "Claude AI Mastery"
+      ],
+      "bio": "Enrolled student in Claude AI Mastery.",
+      "role": "Registered Student",
+      "specialization": "Claude AI Mastery",
+      "experience": "New Student",
+      "studentsCount": "0",
+      "rating": 5,
+      "reviewsCount": 0,
+      "skills": [
+        "Claude AI Mastery",
+        "Learning"
+      ],
+      "highlights": [
+        "Newly Registered KMAWD Student"
+      ],
+      "socials": {
+        "linkedin": "https://linkedin.com"
+      },
+      "isTeacher": false,
+      "id": "student-1793963720963"
+    },
+    {
+      "name": "Fsd studio",
+      "email": "fsdwebstudio35@gmail.com",
+      "phoneNumber": "03019249721",
+      "fatherName": "shahnawaz",
+      "country": "Pakistan",
+      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "primaryCourse": "Web Development",
+      "assignedCourses": [
+        "Web Development"
+      ],
+      "bio": "Enrolled student in Web Development.",
+      "role": "Registered Student",
+      "specialization": "Web Development",
+      "experience": "New Student",
+      "studentsCount": "0",
+      "rating": 5,
+      "reviewsCount": 0,
+      "skills": [
+        "Web Development",
+        "Learning"
+      ],
+      "highlights": [
+        "Newly Registered KMAWD Student"
+      ],
+      "socials": {
+        "linkedin": "https://linkedin.com"
+      },
+      "isTeacher": false,
+      "id": "student-1793963344093"
+    },
+    {
+      "name": " ",
+      "email": "amking86871@gmail.com",
+      "phoneNumber": "",
+      "fatherName": "",
+      "country": "Pakistan",
+      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      "primaryCourse": "Claude AI Mastery",
+      "assignedCourses": [
+        "Claude AI Mastery"
+      ],
+      "bio": "Enrolled student in Claude AI Mastery.",
+      "role": "Registered Student",
+      "specialization": "Claude AI Mastery",
+      "experience": "New Student",
+      "studentsCount": "0",
+      "rating": 5,
+      "reviewsCount": 0,
+      "skills": [
+        "Claude AI Mastery",
+        "Learning"
+      ],
+      "highlights": [
+        "Newly Registered KMAWD Student"
+      ],
+      "socials": {
+        "linkedin": "https://linkedin.com"
+      },
+      "isTeacher": false,
+      "id": "student-1793962571690"
+    },
+    {
+      "id": "student-1793961423096",
+      "name": "Fsd Web studio",
+      "email": "fsdwebstudio35@gmail.com",
+      "phoneNumber": "03024588921",
+      "country": "Pakistan",
+      "primaryCourse": "Web Development",
+      "bio": "gihhhhhhhhhhhh",
+      "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80"
+    }
+  ],
+  "liveSessions": [
+    {
+      "id": "session-1",
+      "title": "Claude AI & Web Development Roadmap 2026",
+      "instructor": "Shahbaz Aslam",
+      "date": "Nov 15, 2026",
+      "time": "8:00 PM PKT",
+      "duration": "90 Mins",
+      "status": "Upcoming",
+      "link": "https://zoom.us/j/kmawd",
+      "thumbnail": "/assets/aistudio/image_85a3982c.png"
+    }
+  ],
+  "contestsData": [
+    {
+      "id": "hackathon-2026",
+      "title": "KMAWD Full-Stack Hackathon 2026",
+      "description": "Build a production-ready SaaS application in 48 hours using React, Laravel, and Gemini AI. Compete for the ultimate engineering title.",
+      "date": "Dec 10, 2026",
+      "prize": "$1,500 Cash + Internship",
+      "status": "Upcoming",
+      "image": "/assets/aistudio/image_57173fca.png"
+    }
+  ],
+  "teamMembersData": [
+    {
+      "id": "member-1",
+      "name": "Shahbaz Aslam",
+      "role": "CEO & Founder",
+      "department": "leadership",
+      "departmentLabel": "Leadership",
+      "location": "Lahore, Pakistan",
+      "experience": "10+ Years",
+      "avatar": "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png",
+      "bio": "Leading global software engineering and enterprise AI transformation.",
+      "keyAchievement": "Scaled KMAWD to 250+ delivered projects worldwide.",
+      "techStack": [
+        "Claude AI",
+        "Laravel",
+        "Enterprise Architecture"
+      ],
+      "socials": {
+        "linkedin": "#"
+      }
+    }
+  ],
+  "companyInfo": {
+    "name": "KMAWD",
+    "email": "info@kmawd.com",
+    "phone": "+92 301 9249721",
+    "logo": "/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png",
+    "address": "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan",
+    "socials": {
+      "linkedin": "https://www.linkedin.com/company/kmawd",
+      "facebook": "https://www.facebook.com/kmawd",
+      "whatsapp": "923019249721"
+    }
+  },
+  "supabaseConfig": {
+    "url": "https://omcvimrnemvahuommvbu.supabase.co",
+    "anonKey": "sb_publishable_H8IsUdR2bDqeciPmd-2alw_YGfCoveB",
+    "status": "Connected & Verified"
+  }
+}

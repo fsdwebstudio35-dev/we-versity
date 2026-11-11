@@ -27,11 +27,33 @@ const COUNTRIES = [
 
 interface SiteLoginGateProps {
   onUnlock: (targetTab?: string, userData?: any) => void;
+  isDeviceAuthorized?: boolean;
 }
 
-export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
+export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock, isDeviceAuthorized }) => {
   const [roleMode, setRoleMode] = useState<'student' | 'teacher'>('student');
   const [authAction, setAuthAction] = useState<'signup' | 'signin'>('signup');
+  const [isSkipVisible, setIsSkipVisible] = useState(false);
+
+  // Hidden shortcut to skip: Alt+S
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        onUnlock('home');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onUnlock]);
+
+  // Check if device is authorized to show the explicit Skip button
+  useEffect(() => {
+    // Only show if the specific skip key is set
+    if (localStorage.getItem('kmawd_skip_registration_enabled') === 'true') {
+      setIsSkipVisible(true);
+    }
+  }, []);
 
   // Form Fields
   const [firstName, setFirstName] = useState('');
@@ -94,8 +116,11 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
       return () => clearTimeout(timer);
     } else {
       // 5 seconds completed -> open website to appropriate view
+      const fullName = `${firstName} ${lastName}`.trim() || 'Student';
       const userData = {
-        name: `${firstName} ${lastName}`,
+        name: fullName,
+        firstName: firstName || fullName.split(' ')[0],
+        lastName: lastName || fullName.split(' ').slice(1).join(' '),
         email,
         phoneNumber,
         fatherName,
@@ -111,7 +136,7 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
         rating: 5.0,
         reviewsCount: 0,
         skills: [selectedCourse, roleMode === 'teacher' ? "Teaching" : "Learning"],
-        highlights: [roleMode === 'teacher' ? "Newly Registered WeVersity Instructor" : "Newly Registered WeVersity Student"],
+        highlights: [roleMode === 'teacher' ? "Newly Registered KMAWD Instructor" : "Newly Registered KMAWD Student"],
         socials: { linkedin: "https://linkedin.com" },
         isTeacher: roleMode === 'teacher'
       };
@@ -132,7 +157,7 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
 
         <div className="relative z-10 flex flex-col items-center text-center space-y-6 px-4 max-w-md w-full">
           
-          {/* Animated 5-second WeVersity Logo Badge */}
+          {/* Animated 5-second KMAWD Logo Badge */}
           <div className="relative">
             {/* Pulsing ring around logo */}
             <div 
@@ -142,8 +167,8 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
             
             <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white p-3 border-4 border-purple-400/80 shadow-2xl shadow-purple-900/60 flex items-center justify-center overflow-hidden transform hover:scale-105 transition-transform">
               <img 
-                src="/assets/aistudio/image_b4867fb4.png" 
-                alt="WeVersity Logo" 
+                src="/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png" 
+                alt="KMAWD Logo" 
                 className="w-full h-full object-contain animate-bounce"
                 style={{ animationDuration: '2s' }}
               />
@@ -161,7 +186,7 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
               <span>{roleMode === 'teacher' ? 'Teacher Registered' : 'Student Verified'} • Launching Portal</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-white tracking-tight">
-              Welcome to <span className="text-[#A78BFA]">WeVersity</span>
+              Welcome to <span className="text-[#A78BFA]">KMAWD</span>
             </h2>
             <p className="text-xs sm:text-sm text-purple-200/80 leading-relaxed max-w-xs mx-auto">
               {roleMode === 'teacher' ? 'Accessing Teacher Dashboard...' : 'Opening Student Education Portal...'}
@@ -183,7 +208,7 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
           </div>
 
           <div className="text-[11px] text-purple-400/80 font-mono tracking-wider">
-            WeVersity Learn To Earn
+            KMAWD Learn To Earn
           </div>
 
         </div>
@@ -199,7 +224,18 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
       <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-purple-100/80 overflow-hidden relative flex flex-col">
         
         {/* Top Right Student / Teacher Toggle Buttons matching screenshot */}
-        <div className="p-4 sm:p-6 pb-0 flex justify-end">
+        <div className="p-4 sm:p-6 pb-0 flex flex-wrap items-center justify-between gap-4">
+          {/* Hidden Skip Button: Only shows on User's authorized PC */}
+          {isSkipVisible ? (
+            <button
+              onClick={() => onUnlock('home')}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all flex items-center gap-2 shadow-sm md:hidden"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Skip Registration</span>
+            </button>
+          ) : <div />}
+
           <div className="bg-[#F0EAFF] p-1 rounded-2xl flex items-center gap-1 border border-purple-200/60 shadow-inner">
             
             {/* Student Toggle Button */}
@@ -222,7 +258,7 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
               onClick={() => setRoleMode('teacher')}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
                 roleMode === 'teacher'
-                  ? 'bg-[#6D28D9] text-white shadow-md shadow-purple-600/30'
+                  ? 'bg-[#6D28D9] text-[#ffffff] shadow-md shadow-purple-600/30'
                   : 'text-[#6D28D9] hover:bg-purple-100/60'
               }`}
             >
@@ -236,21 +272,21 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
         {/* Card Body: 2 Column Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 p-6 sm:p-8 pt-2 gap-8 items-center">
           
-          {/* Left Column: Big WeVersity Logo & Campus Image matching screenshot */}
+          {/* Left Column: Big KMAWD Logo & Campus Image matching screenshot */}
           <div className="md:col-span-5 flex flex-col items-center justify-between h-full border-r-0 md:border-r border-purple-100 pr-0 md:pr-6 space-y-6">
             
             <div className="flex flex-col items-center text-center pt-2 space-y-2">
-              {/* Large WeVersity Logo */}
+              {/* Large KMAWD Logo */}
               <div className="w-40 sm:w-48 h-auto flex items-center justify-center">
                 <img 
-                  src="/assets/aistudio/image_b4867fb4.png" 
-                  alt="WeVersity Learn To Earn" 
+                  src="/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png" 
+                  alt="KMAWD Learn To Earn" 
                   className="w-full object-contain"
                 />
               </div>
 
               <p className="text-xs text-purple-700 font-semibold pt-1">
-                WeVersity Education Portal
+                KMAWD Education Portal
               </p>
             </div>
 
@@ -258,12 +294,12 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
             <div className="w-full h-32 sm:h-40 rounded-2xl overflow-hidden border border-purple-200/80 shadow-md relative group">
               <img 
                 src="/assets/aistudio/hero_illustration_full.png" 
-                alt="WeVersity Campus" 
+                alt="KMAWD Campus" 
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-purple-950/60 via-transparent to-transparent flex items-end p-3">
                 <span className="text-[11px] font-bold text-white tracking-wide">
-                  WeVersity • Excellence in Learning
+                  KMAWD • Excellence in Learning
                 </span>
               </div>
             </div>
@@ -486,7 +522,7 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
               )}
 
               {/* Submit Button matching purple pill in screenshot */}
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col gap-3">
                 <button
                   type="submit"
                   className="w-full py-3 rounded-2xl font-extrabold text-sm text-white bg-[#6D28D9] hover:bg-[#5B21B6] shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer group"
@@ -503,6 +539,18 @@ export const SiteLoginGate: React.FC<SiteLoginGateProps> = ({ onUnlock }) => {
                     </>
                   )}
                 </button>
+                
+                {/* Skip Registration Button */}
+                {isSkipVisible && (
+                  <button
+                    type="button"
+                    onClick={() => onUnlock('home')}
+                    className="w-full py-2.5 rounded-2xl font-bold text-xs text-[#6D28D9] bg-purple-50 hover:bg-purple-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Skip Registration</span>
+                  </button>
+                )}
               </div>
 
             </form>

@@ -14,7 +14,8 @@ import {
   Puzzle,
   MessageCircle,
   LogOut,
-  Database
+  Database,
+  Award
 } from 'lucide-react';
 import { COMPANY_INFO, SERVICES, ServiceItem } from '../data/maatiData';
 
@@ -74,15 +75,17 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'portfolio', label: 'Portfolio' },
     { id: 'team', label: 'Team' },
     { id: 'estimator', label: 'Cost Estimator' },
-    { id: 'about', label: 'About' },
+    { id: 'about', label: 'About Us' },
     { id: 'teachers', label: 'Teachers' },
     { id: 'students', label: 'Students' },
     { id: 'contests', label: 'Contests' },
     { id: 'contact', label: 'Contact' },
   ];
 
-  const brandName = companyInfo?.name || 'WEVERSITY';
-  const brandLogo = companyInfo?.logo || '/assets/aistudio/image_b3d7cc94.png';
+  const brandName = (companyInfo?.name && companyInfo.name !== 'WeVersity') ? companyInfo.name : 'KMAWD';
+  const brandLogo = (companyInfo?.logo && !companyInfo.logo.includes('image_ec98d7d2') && !companyInfo.logo.includes('image_b3d7cc94') && !companyInfo.logo.includes('image_03e15199'))
+    ? companyInfo.logo
+    : '/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png';
 
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-white/95 border-b border-gray-100 shadow-xs transition-all">

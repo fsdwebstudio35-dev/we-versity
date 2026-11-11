@@ -83,7 +83,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency, companyInfo 
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200 text-xs font-bold">
           <Phone className="w-3.5 h-3.5" />
-          <span>Get in Touch with WeVersity</span>
+          <span>Get in Touch with KMAWD</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-gray-950 tracking-tight">
           Let’s Build Something Exceptional Together
@@ -111,7 +111,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency, companyInfo 
               Chat directly with our solutions architect on WhatsApp. Ideal for rapid scopes, rough ballparks, and quick questions.
             </p>
             <a
-              href={`https://wa.me/${COMPANY_INFO.whatsappNumber}?text=Hello%20Maati%20Tech,%20I'd%20like%20to%20discuss%20a%20project.`}
+              href={`https://wa.me/${COMPANY_INFO.whatsappNumber}?text=Hello%20KMAWD,%20I'd%20like%20to%20discuss%20a%20project.`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3 rounded-xl font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25"
@@ -244,7 +244,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency, companyInfo 
                 Thank you for reaching out, <span className="text-gray-900 font-bold">{name}</span>. One of our senior software engineers in Lahore will review your specifications and email you back at <span className="text-[#6D28D9] font-bold">{email}</span> within 4 hours.
               </p>
               <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-xs text-gray-700 max-w-sm mx-auto text-left space-y-1">
-                <div>✓ Ticket created in WeVersity CRM</div>
+                <div>✓ Ticket created in KMAWD CRM</div>
                 <div>✓ Confidentiality guaranteed under standard NDA</div>
                 <div>✓ Direct phone contact: {brandPhone}</div>
               </div>
@@ -392,7 +392,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ currency, companyInfo 
                 ) : (
                   <>
                     <Send className="w-4 h-4 text-purple-200" />
-                    <span>Send Inquiry to WeVersity Engineers</span>
+                    <span>Send Inquiry to KMAWD Engineers</span>
                   </>
                 )}
               </button>

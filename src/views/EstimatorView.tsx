@@ -5,7 +5,8 @@ import {
   Check, 
   Clock, 
   ShieldCheck, 
-  Zap
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from '../data/maatiData';
@@ -15,13 +16,15 @@ interface EstimatorViewProps {
   currency: 'USD' | 'PKR' | 'GBP';
   setCurrency: (currency: 'USD' | 'PKR' | 'GBP') => void;
   config?: EstimatorConfig;
+  isDeviceAuthorized?: boolean;
 }
 
 export const EstimatorView: React.FC<EstimatorViewProps> = ({
   onOpenQuoteModal,
   currency,
   setCurrency,
-  config
+  config,
+  isDeviceAuthorized
 }) => {
   const activeConfig = config || DEFAULT_ESTIMATOR_CONFIG;
   const projectTypes = activeConfig.projectTypes && activeConfig.projectTypes.length > 0
@@ -95,26 +98,19 @@ export const EstimatorView: React.FC<EstimatorViewProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
-      
-      {/* Header */}
+    <div className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      {/* 1. Header Section matching Courses Style */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200 text-xs font-bold">
-          <Calculator className="w-3.5 h-3.5" />
-          <span>Transparent Pricing Estimator</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
+          <span>QUICK BALLPARK</span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-gray-950 tracking-tight">
-          Calculate Your Project Scope & Cost
+        <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
+          Instant Cost <span className="text-[#6D28D9]">Estimator</span>
         </h1>
-        <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-          No hidden fees or unexpected extras. Configure your requirements below for an instant ballpark estimate and delivery timeline.
+        <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+          Select your project parameters below to receive an instant, accurate ballpark estimate for your next digital venture.
         </p>
-
-        {/* Currency Badge - PKR Only */}
-        <div className="inline-flex items-center gap-1.5 bg-white rounded-2xl px-4 py-1.5 border border-purple-200 shadow-sm mt-2 text-xs font-bold text-[#6D28D9]">
-          <span className="w-2 h-2 rounded-full bg-[#6D28D9]"></span>
-          <span>Currency: Pakistani Rupee (PKR - ₨)</span>
-        </div>
       </div>
 
       {/* Main Estimator Grid */}
@@ -128,232 +124,179 @@ export const EstimatorView: React.FC<EstimatorViewProps> = ({
             <label className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] block">
               1. Select Project Type
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {projectTypes.map((pt) => {
-                const isSelected = projectType === pt.id;
-                return (
-                  <button
-                    key={pt.id}
-                    onClick={() => setProjectType(pt.id)}
-                    className={`p-3.5 rounded-2xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-purple-50 border-[#6D28D9] text-[#6D28D9] shadow-xs ring-1 ring-purple-200'
-                        : 'bg-white border-purple-100 text-gray-700 hover:border-purple-300'
-                    }`}
-                  >
-                    <span>{pt.name}</span>
-                    <span className="text-[11px] text-[#6D28D9] font-extrabold">{formatCurrency(pt.baseUSD)}</span>
-                  </button>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {projectTypes.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setProjectType(type.id)}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    projectType === type.id
+                      ? 'bg-purple-50 border-purple-400 shadow-sm ring-1 ring-purple-400'
+                      : 'bg-[#FAF9FD] border-purple-100 hover:border-purple-200'
+                  }`}
+                >
+                  <div className="text-sm font-bold text-[#18113C]">{type.name}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">Base timeline: {type.weeks} weeks</div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Step 2: Project Scope / Scale */}
+          {/* Step 2: Project Scale */}
           <div className="space-y-3">
             <label className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] block">
-              2. Scope Size & Module Volume
+              2. Scale & Complexity
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {scaleOptions.map((s) => {
-                const isSelected = scale === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setScale(s.id)}
-                    className={`p-3 rounded-2xl border text-left text-xs transition-all ${
-                      isSelected
-                        ? 'bg-purple-50 border-[#6D28D9] text-[#6D28D9] font-bold ring-1 ring-purple-200'
-                        : 'bg-white border-purple-100 text-gray-700 hover:border-purple-300'
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {scaleOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setScale(opt.id)}
+                  className={`p-4 rounded-2xl border text-center transition-all ${
+                    scale === opt.id
+                      ? 'bg-purple-50 border-purple-400 shadow-sm ring-1 ring-purple-400'
+                      : 'bg-[#FAF9FD] border-purple-100 hover:border-purple-200'
+                  }`}
+                >
+                  <div className="text-sm font-bold text-[#18113C]">{opt.label}</div>
+                  <div className="text-[10px] text-[#6D28D9] font-bold mt-0.5">x{opt.multiplier.toFixed(1)} Scope</div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Step 3: Design Tier */}
+          {/* Step 3: UI/UX Design Tier */}
           <div className="space-y-3">
             <label className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] block">
               3. UI/UX Design Level
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {designTiers.map((d) => {
-                const isSelected = designTier === d.id;
-                return (
-                  <button
-                    key={d.id}
-                    onClick={() => setDesignTier(d.id)}
-                    className={`p-3 rounded-2xl border text-left text-xs transition-all flex flex-col justify-between space-y-1 ${
-                      isSelected
-                        ? 'bg-purple-50 border-[#6D28D9] text-[#6D28D9] font-bold ring-1 ring-purple-200'
-                        : 'bg-white border-purple-100 text-gray-700 hover:border-purple-300'
-                    }`}
-                  >
-                    <span>{d.label}</span>
-                    <span className="text-[10px] text-gray-500">{d.desc}</span>
-                  </button>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {designTiers.map((tier) => (
+                <button
+                  key={tier.id}
+                  onClick={() => setDesignTier(tier.id)}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    designTier === tier.id
+                      ? 'bg-purple-50 border-purple-400 shadow-sm ring-1 ring-purple-400'
+                      : 'bg-[#FAF9FD] border-purple-100 hover:border-purple-200'
+                  }`}
+                >
+                  <div className="text-sm font-bold text-[#18113C]">{tier.label}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5 leading-relaxed">{tier.desc}</div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Step 4: Backend & Database Architecture */}
+          {/* Step 4: Add-ons */}
           <div className="space-y-3">
             <label className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] block">
-              4. Backend Complexity & API
+              4. Features & Add-ons
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {backendOptions.map((b) => {
-                const isSelected = backendComplexity === b.id;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setBackendComplexity(b.id)}
-                    className={`p-3 rounded-2xl border text-left text-xs transition-all ${
-                      isSelected
-                        ? 'bg-purple-50 border-[#6D28D9] text-[#6D28D9] font-bold ring-1 ring-purple-200'
-                        : 'bg-white border-purple-100 text-gray-700 hover:border-purple-300'
-                    }`}
-                  >
-                    {b.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step 5: Optional Engineering Addons */}
-          <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] block">
-              5. Integrations & Special Features
-            </label>
-            <div className="space-y-2">
-              {addonOptions.map((addon) => {
-                const isChecked = addons.includes(addon.id);
-                return (
-                  <button
-                    key={addon.id}
-                    onClick={() => toggleAddon(addon.id)}
-                    className={`w-full p-3 rounded-2xl border text-left text-xs transition-all flex items-center justify-between ${
-                      isChecked
-                        ? 'bg-purple-50/70 border-[#6D28D9] text-[#6D28D9] font-bold'
-                        : 'bg-white border-purple-100 text-gray-700 hover:border-purple-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center ${
-                        isChecked ? 'bg-[#6D28D9] border-[#6D28D9] text-white' : 'border-gray-300'
-                      }`}>
-                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
-                      <span>{addon.name}</span>
-                    </div>
-                    <span className="text-[11px] font-extrabold text-[#6D28D9]">+{formatCurrency(addon.costUSD)}</span>
-                  </button>
-                );
-              })}
+            <div className="flex flex-wrap gap-2.5">
+              {addonOptions.map((addon) => (
+                <button
+                  key={addon.id}
+                  onClick={() => toggleAddon(addon.id)}
+                  className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 ${
+                    addons.includes(addon.id)
+                      ? 'bg-[#6D28D9] text-white border-[#6D28D9] shadow-md shadow-purple-600/20'
+                      : 'bg-[#FAF9FD] border-purple-100 text-gray-700 hover:border-purple-200'
+                  }`}
+                >
+                  {addons.includes(addon.id) ? <Check className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5 opacity-40" />}
+                  <span>{addon.name}</span>
+                </button>
+              ))}
             </div>
           </div>
 
         </div>
 
-        {/* Right Sticky Calculation Summary Card */}
-        <div className="lg:col-span-5 sticky top-28 space-y-6">
-          <div className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-purple-200 shadow-xl shadow-purple-900/10 space-y-6 relative overflow-hidden">
-            {/* Top Badge */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                Scope Summary
-              </span>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold flex items-center gap-1">
-                <Clock className="w-3 h-3" /> ~{totalEstimatedWeeks} Weeks Delivery
-              </span>
-            </div>
+        {/* Right Summary Sidebar */}
+        <div className="lg:col-span-5 sticky top-24 space-y-6">
+          <div className="p-8 rounded-[2rem] bg-gradient-to-br from-[#18113C] to-[#0C081F] text-white shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-[#6D28D9]/20 rounded-full blur-3xl" />
+            
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-widest text-purple-300/80">Estimate Summary</span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase border border-emerald-500/20">Accurate</span>
+              </div>
 
-            {/* Price Large Number */}
-            <div className="space-y-1">
-              <span className="text-xs text-gray-500 font-medium">Estimated Project Investment</span>
-              <div className="text-4xl sm:text-5xl font-display font-extrabold text-gray-950 tracking-tight">
-                <span className="text-[#6D28D9]">
-                  {formatCurrency(baseCalculatedUSD)}
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-500">
-                Includes 100% full source code ownership, database schemas, and 90-day warranty.
-              </p>
-            </div>
+              <div className="space-y-4">
+                <div className="flex items-end justify-between border-b border-white/10 pb-4">
+                  <div>
+                    <div className="text-[10px] text-purple-300 font-bold uppercase tracking-tight">Total Investment</div>
+                    <div className="text-4xl font-display font-black tracking-tight">{formatCurrency(baseCalculatedUSD)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-purple-300 font-bold uppercase tracking-tight">Timeline</div>
+                    <div className="text-lg font-bold flex items-center justify-end gap-1.5">
+                      <Clock className="w-4 h-4 text-emerald-400" />
+                      {totalEstimatedWeeks} Weeks
+                    </div>
+                  </div>
+                </div>
 
-            {/* Line-item list */}
-            <div className="space-y-2.5 text-xs border-t border-gray-100 pt-4 text-gray-700">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Selected Type:</span>
-                <span className="font-bold text-gray-900">{selectedTypeObj.name}</span>
+                <div className="space-y-3">
+                  <div className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Selected Stack & Parameters</div>
+                  <ul className="space-y-2.5">
+                    <li className="flex items-center gap-2 text-xs font-medium text-white/90">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      {selectedTypeObj.name}
+                    </li>
+                    <li className="flex items-center gap-2 text-xs font-medium text-white/90">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      {selectedScaleObj.label} Multiplier
+                    </li>
+                    <li className="flex items-center gap-2 text-xs font-medium text-white/90">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      {selectedDesignObj.label} Design
+                    </li>
+                    <li className="flex items-center gap-2 text-xs font-medium text-white/90">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      Backend: {selectedBackendObj.label}
+                    </li>
+                    {addons.length > 0 && (
+                      <li className="flex items-center gap-2 text-xs font-medium text-white/90">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        {addons.length} Custom Feature Add-ons
+                      </li>
+                    )}
+                  </ul>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Scope Level:</span>
-                <span className="font-bold text-gray-900">{selectedScaleObj.label.split(' ')[0]}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Design Tier:</span>
-                <span className="font-bold text-gray-900">{selectedDesignObj.label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Backend:</span>
-                <span className="font-bold text-gray-900">{selectedBackendObj.label.split(' ')[0]}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Active Addons:</span>
-                <span className="font-bold text-[#6D28D9]">{addons.length} selected</span>
-              </div>
-            </div>
 
-            {/* Confidence Bullets */}
-            <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-2 text-xs text-gray-700">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Fixed-scope written contract</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-[#6D28D9] shrink-0" />
-                <span>Weekly sprint demos & staging link</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                <span>Zero vendor lock-in or recurring site fees</span>
-              </div>
-            </div>
-
-            {/* CTA button */}
-            <button
-              onClick={handleCelebrateEstimate}
-              className="w-full py-4 rounded-xl font-bold text-xs tracking-wider uppercase text-white bg-[#6D28D9] hover:bg-[#5B21B6] shadow-xl shadow-purple-600/25 transition-all flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-purple-200 fill-purple-200" />
-              <span>Lock In This Scope & Get Proposal</span>
-            </button>
-
-            <div className="text-center">
-              <span className="text-[11px] text-gray-500">
-                Or discuss with our lead engineer on WhatsApp: 
-                <a 
-                  href="https://wa.me/923046446541" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-emerald-700 hover:underline ml-1 font-bold"
+              <div className="pt-4 space-y-4">
+                <button
+                  onClick={handleCelebrateEstimate}
+                  className="w-full py-4 rounded-2xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-purple-950/40 transition-all flex items-center justify-center gap-2.5 group"
                 >
-                  +92 304 6446 541
-                </a>
-              </span>
+                  <Sparkles className="w-4 h-4 text-purple-200 fill-purple-200" />
+                  <span>Lock In This Pricing</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+                
+                <p className="text-[10px] text-center text-white/40 leading-relaxed italic">
+                  * This estimate covers development, architecture, and basic QA. Excludes hosting fees & 3rd party API costs.
+                </p>
+              </div>
             </div>
+          </div>
 
+          <div className="p-6 rounded-3xl bg-purple-50 border border-purple-100 space-y-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-[#6D28D9]" />
+              <div className="text-xs font-bold text-[#18113C]">Production Guarantee</div>
+            </div>
+            <p className="text-[11px] text-gray-600 leading-relaxed">
+              Every estimate includes a <strong>fixed-price guarantee</strong> once the scope is finalized. No hourly billing surprises or scope creep charges.
+            </p>
           </div>
         </div>
 
       </div>
-
     </div>
   );
 };

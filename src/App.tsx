@@ -17,6 +17,7 @@ import { ChatBot } from './components/ChatBot';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { SiteLoginGate } from './components/SiteLoginGate';
 import { SupabaseConnectModal } from './components/SupabaseConnectModal';
+import { motion, AnimatePresence } from 'motion/react';
 
 import { HomeView } from './views/HomeView';
 import { PortfolioView } from './views/PortfolioView';
@@ -29,8 +30,10 @@ import { ContactView } from './views/ContactView';
 import { AdminView } from './views/AdminView';
 import { ContestsView } from './views/ContestsView';
 import { StudentsView } from './views/StudentsView';
+import { ResultsView } from './views/ResultsView';
+import { AcademicView } from './views/AcademicView';
 
-import { ServiceItem, PortfolioProject, BlogPost, CourseItem, Contest, TeamMember, COURSES, PORTFOLIO_PROJECTS, TEACHERS, TEAM_MEMBERS, CONTESTS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG } from './data/maatiData';
+import { ServiceItem, PortfolioProject, BlogPost, CourseItem, Contest, TeamMember, Result, RESULTS, COURSES, PORTFOLIO_PROJECTS, TEACHERS, TEAM_MEMBERS, CONTESTS, EstimatorConfig, DEFAULT_ESTIMATOR_CONFIG, AcademicData, DEFAULT_ACADEMIC_DATA } from './data/maatiData';
 import { AboutData, DEFAULT_ABOUT_DATA } from './data/aboutData';
 
 export default function App() {
@@ -41,13 +44,13 @@ export default function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean>(() => {
-    return localStorage.getItem('weversity_admin_device_authorized') === 'true';
+    return localStorage.getItem('kmawd_admin_device_authorized') === 'true';
   });
 
   // Dynamic Portfolio Projects State (synchronized across website and admin)
   const [portfolioProjects, setPortfolioProjects] = useState<PortfolioProject[]>(() => {
     try {
-      const saved = localStorage.getItem('weversity_portfolio_projects');
+      const saved = localStorage.getItem('kmawd_portfolio_projects');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -61,7 +64,7 @@ export default function App() {
   // Dynamic Cost Estimator Configuration (synchronized across website and admin)
   const [estimatorConfig, setEstimatorConfig] = useState<EstimatorConfig>(() => {
     try {
-      const saved = localStorage.getItem('weversity_estimator_config');
+      const saved = localStorage.getItem('kmawd_estimator_config') || localStorage.getItem('weversity_estimator_config');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && Array.isArray(parsed.projectTypes) && parsed.projectTypes.length > 0) {
@@ -77,7 +80,7 @@ export default function App() {
   // Dynamic About Us Data (synchronized across website and admin)
   const [aboutData, setAboutData] = useState<AboutData>(() => {
     try {
-      const saved = localStorage.getItem('weversity_about_data');
+      const saved = localStorage.getItem('kmawd_about_data') || localStorage.getItem('weversity_about_data');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.hero && parsed.milestones && parsed.leadership) {
@@ -91,17 +94,34 @@ export default function App() {
   });
 
   // Dynamic Company Info
-  const [companyInfo, setCompanyInfo] = useState({
-    name: "WeVersity",
-    email: "info@weversity.com",
-    phone: "+92 301 9249721",
-    logo: "/assets/aistudio/image_ec98d7d2.png",
-    address: "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan",
+  const [companyInfo, setCompanyInfo] = useState(() => {
+    try {
+      const saved = localStorage.getItem('kmawd_company_info') || localStorage.getItem('weversity_company_info');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            name: (!parsed.name || parsed.name === 'WeVersity') ? 'KMAWD' : parsed.name,
+            email: parsed.email || 'info@kmawd.com',
+            phone: parsed.phone || '+92 301 9249721',
+            logo: (!parsed.logo || parsed.logo.includes('image_ec98d7d2') || parsed.logo.includes('image_b3d7cc94') || parsed.logo.includes('image_03e15199')) ? '/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png' : parsed.logo,
+            address: parsed.address || 'Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan',
+          };
+        }
+      }
+    } catch {}
+    return {
+      name: "KMAWD",
+      email: "info@kmawd.com",
+      phone: "+92 301 9249721",
+      logo: "/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png",
+      address: "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan",
+    };
   });
 
   const [teachers, setTeachers] = useState<any[]>(() => {
     try {
-      const saved = localStorage.getItem('weversity_teachers');
+      const saved = localStorage.getItem('kmawd_teachers') || localStorage.getItem('weversity_teachers');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -111,14 +131,14 @@ export default function App() {
   });
   const [sessions, setSessions] = useState<any[]>(() => {
     try {
-      const saved = localStorage.getItem('weversity_sessions');
+      const saved = localStorage.getItem('kmawd_sessions') || localStorage.getItem('weversity_sessions');
       if (saved) return JSON.parse(saved);
     } catch {}
     return [];
   });
   const [contests, setContests] = useState<Contest[]>(() => {
     try {
-      const saved = localStorage.getItem('weversity_contests');
+      const saved = localStorage.getItem('kmawd_contests') || localStorage.getItem('weversity_contests');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -128,23 +148,40 @@ export default function App() {
   });
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
     try {
-      const saved = localStorage.getItem('weversity_team_members');
+      const saved = localStorage.getItem('kmawd_team_members') || localStorage.getItem('weversity_team_members');
       if (saved) return JSON.parse(saved);
     } catch {}
     return TEAM_MEMBERS;
   });
   const [students, setStudents] = useState<any[]>(() => {
     try {
-      const saved = localStorage.getItem('weversity_students');
+      const saved = localStorage.getItem('kmawd_students') || localStorage.getItem('weversity_students');
       if (saved) return JSON.parse(saved);
     } catch {}
     return [];
+  });
+  const [results, setResults] = useState<Result[]>(() => {
+    try {
+      const saved = localStorage.getItem('kmawd_results') || localStorage.getItem('weversity_results');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return RESULTS;
+  });
+  const [academicData, setAcademicData] = useState<AcademicData>(() => {
+    try {
+      const saved = localStorage.getItem('kmawd_academic_data') || localStorage.getItem('weversity_academic_data');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_ACADEMIC_DATA;
   });
 
   const handleUpdateProjects = (newProjects: PortfolioProject[]) => {
     setPortfolioProjects(newProjects);
     try {
-      localStorage.setItem('weversity_portfolio_projects', JSON.stringify(newProjects));
+      localStorage.setItem('kmawd_portfolio_projects', JSON.stringify(newProjects));
     } catch {
       // ignore
     }
@@ -153,42 +190,61 @@ export default function App() {
   const handleUpdateTeachers = (newTeachers: any[]) => {
     setTeachers(newTeachers);
     try {
-      localStorage.setItem('weversity_teachers', JSON.stringify(newTeachers));
+      localStorage.setItem('kmawd_teachers', JSON.stringify(newTeachers));
     } catch {}
   };
 
   const handleUpdateStudents = (newStudents: any[]) => {
     setStudents(newStudents);
     try {
-      localStorage.setItem('weversity_students', JSON.stringify(newStudents));
+      localStorage.setItem('kmawd_students', JSON.stringify(newStudents));
     } catch {}
+  };
+
+  const handleUpdateResults = (newResults: Result[]) => {
+    setResults(newResults);
+    try {
+      localStorage.setItem('kmawd_results', JSON.stringify(newResults));
+    } catch {}
+  };
+  
+  const handleUpdateAcademicData = (newData: AcademicData) => {
+    setAcademicData(newData);
+    try {
+      localStorage.setItem('kmawd_academic_data', JSON.stringify(newData));
+    } catch {}
+    fetch('/api/academic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newData)
+    }).catch(() => {});
   };
 
   const handleUpdateSessions = (newSessions: any[]) => {
     setSessions(newSessions);
     try {
-      localStorage.setItem('weversity_sessions', JSON.stringify(newSessions));
+      localStorage.setItem('kmawd_sessions', JSON.stringify(newSessions));
     } catch {}
   };
 
   const handleUpdateContests = (newContests: Contest[]) => {
     setContests(newContests);
     try {
-      localStorage.setItem('weversity_contests', JSON.stringify(newContests));
+      localStorage.setItem('kmawd_contests', JSON.stringify(newContests));
     } catch {}
   };
 
   const handleUpdateTeamMembers = (newMembers: TeamMember[]) => {
     setTeamMembers(newMembers);
     try {
-      localStorage.setItem('weversity_team_members', JSON.stringify(newMembers));
+      localStorage.setItem('kmawd_team_members', JSON.stringify(newMembers));
     } catch {}
   };
 
   const handleUpdateEstimatorConfig = (newConfig: EstimatorConfig) => {
     setEstimatorConfig(newConfig);
     try {
-      localStorage.setItem('weversity_estimator_config', JSON.stringify(newConfig));
+      localStorage.setItem('kmawd_estimator_config', JSON.stringify(newConfig));
     } catch {
       // ignore
     }
@@ -202,8 +258,8 @@ export default function App() {
   const handleUpdateAboutData = (newAbout: AboutData) => {
     setAboutData(newAbout);
     try {
-      localStorage.setItem('weversity_about_data', JSON.stringify(newAbout));
-      window.dispatchEvent(new CustomEvent('weversity_about_updated', { detail: newAbout }));
+      localStorage.setItem('kmawd_about_data', JSON.stringify(newAbout));
+      window.dispatchEvent(new CustomEvent('kmawd_about_updated', { detail: newAbout }));
     } catch {
       // ignore
     }
@@ -215,11 +271,23 @@ export default function App() {
   };
 
   const handleUpdateCompanyInfo = (newInfo: any) => {
-    setCompanyInfo(newInfo);
+    if (!newInfo) return;
+    const sanitized = {
+      ...newInfo,
+      name: (!newInfo.name || newInfo.name === 'WeVersity') ? 'KMAWD' : newInfo.name,
+      logo: (!newInfo.logo || newInfo.logo.includes('image_ec98d7d2') || newInfo.logo.includes('image_b3d7cc94') || newInfo.logo.includes('image_03e15199')) ? '/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png' : newInfo.logo,
+    };
+    setCompanyInfo(sanitized);
     try {
-      localStorage.setItem('weversity_company_info', JSON.stringify(newInfo));
+      localStorage.setItem('kmawd_company_info', JSON.stringify(sanitized));
+      localStorage.removeItem('weversity_company_info');
     } catch {}
   };
+
+  // Scroll to top immediately whenever active tab changes for a crisp, separate page feel
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [activeTab]);
 
   // Sync with backend API on mount
   useEffect(() => {
@@ -303,6 +371,24 @@ export default function App() {
         }
       })
       .catch(() => {});
+
+    fetch('/api/results')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.results)) {
+          handleUpdateResults(data.results);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/academic')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.academic) {
+          handleUpdateAcademicData(data.academic);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Modals state
@@ -371,14 +457,15 @@ export default function App() {
 
   // Site Login Gate state
   const [isSiteUnlocked, setIsSiteUnlocked] = useState<boolean>(() => {
-    return sessionStorage.getItem('weversity_site_unlocked') === 'true';
+    return sessionStorage.getItem('kmawd_site_unlocked') === 'true' || sessionStorage.getItem('weversity_site_unlocked') === 'true';
   });
 
   if (!isSiteUnlocked) {
     return (
       <SiteLoginGate
+        isDeviceAuthorized={isDeviceAuthorized}
         onUnlock={(targetTab, userData) => {
-          sessionStorage.setItem('weversity_site_unlocked', 'true');
+          sessionStorage.setItem('kmawd_site_unlocked', 'true');
           
           if (userData) {
             const newUser = {
@@ -424,7 +511,7 @@ export default function App() {
         onViewWebsite={() => setIsAdminOpen(false)}
         onLogout={() => {
           setIsAdminOpen(false);
-          localStorage.removeItem('weversity_admin_auth');
+          localStorage.removeItem('kmawd_admin_auth');
         }}
         projects={portfolioProjects}
         onUpdateProjects={handleUpdateProjects}
@@ -439,7 +526,12 @@ export default function App() {
         onUpdateContests={handleUpdateContests}
         teamMembers={teamMembers}
         onUpdateTeamMembers={handleUpdateTeamMembers}
+        students={students}
         onUpdateStudents={handleUpdateStudents}
+        results={results}
+        onUpdateResults={handleUpdateResults}
+        academicData={academicData}
+        onUpdateAcademicData={handleUpdateAcademicData}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
     );
@@ -463,8 +555,16 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-grow">
-        {activeTab === 'home' && (
+      <main className="flex-grow min-h-[70vh] relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            {activeTab === 'home' && (
           <HomeView
             setActiveTab={setActiveTab}
             onOpenQuoteModal={handleOpenQuoteModal}
@@ -478,7 +578,7 @@ export default function App() {
             projects={portfolioProjects}
             companyInfo={companyInfo}
             onLogout={() => {
-              sessionStorage.removeItem('weversity_site_unlocked');
+              sessionStorage.removeItem('kmawd_site_unlocked');
               setIsSiteUnlocked(false);
             }}
           />
@@ -490,7 +590,7 @@ export default function App() {
             <div className="text-center space-y-4 max-w-3xl mx-auto">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
-                <span>LEARN WITH WEVERSITY</span>
+                <span>LEARN WITH KMAWD</span>
               </div>
               <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
                 Courses &amp; <span className="text-[#6D28D9]">Training</span>
@@ -612,22 +712,6 @@ export default function App() {
                 </div>
               ))}
             </div>
-
-            {/* Training Guarantees Strip */}
-            <div className="p-8 rounded-3xl bg-white border border-purple-150 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div className="space-y-1">
-                <div className="text-lg font-bold text-[#18113C]">100% Practical &amp; Live</div>
-                <div className="text-xs text-gray-500">No pre-recorded fluff. Live interactive cohorts with code reviews.</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-lg font-bold text-[#18113C]">Verified Certificate</div>
-                <div className="text-xs text-gray-500">Official WeVersity verifiable certificate &amp; LinkedIn endorsement.</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-lg font-bold text-[#18113C]">Internship Placement</div>
-                <div className="text-xs text-gray-500">Top performers qualify for paid internships at WeVersity software house.</div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -647,6 +731,7 @@ export default function App() {
             currency={currency}
             setCurrency={setCurrency}
             config={estimatorConfig}
+            isDeviceAuthorized={isDeviceAuthorized}
           />
         )}
 
@@ -691,7 +776,41 @@ export default function App() {
             onSelectCourse={(course) => setSelectedCourse(course)}
           />
         )}
+
+        {activeTab === 'results' && (
+          <ResultsView results={results} setActiveTab={setActiveTab} />
+        )}
+
+        {activeTab === 'academic' && (
+          <AcademicView 
+            data={academicData} 
+            setActiveTab={setActiveTab} 
+            onOpenQuoteModal={handleOpenQuoteModal} 
+          />
+        )}
+          </motion.div>
+        </AnimatePresence>
       </main>
+
+      {/* Global Guarantees Strip (Visible on most sub-pages for consistency) */}
+      {!['home', 'contact', 'estimator'].includes(activeTab) && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+          <div className="p-8 rounded-3xl bg-white border border-purple-150 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="space-y-1">
+              <div className="text-lg font-bold text-[#18113C]">100% Practical &amp; Live</div>
+              <div className="text-xs text-gray-500">No pre-recorded fluff. Live interactive cohorts with code reviews.</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-lg font-bold text-[#18113C]">Verified Certificate</div>
+              <div className="text-xs text-gray-500">Official KMAWD verifiable certificate &amp; LinkedIn endorsement.</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-lg font-bold text-[#18113C]">Internship Placement</div>
+              <div className="text-xs text-gray-500">Top performers qualify for paid internships at KMAWD software house.</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <Footer

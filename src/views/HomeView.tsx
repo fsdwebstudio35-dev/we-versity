@@ -35,6 +35,7 @@ import {
   Lock,
   LogOut
 } from 'lucide-react';
+import { motion, AnimatePresence, Variants } from 'motion/react';
 import { 
   COMPANY_INFO, 
   PORTFOLIO_PROJECTS, 
@@ -77,11 +78,38 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [selectedPortfolioCategory, setSelectedPortfolioCategory] = useState<string>('all');
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as any }
+    }
+  };
+
+  const imageVariants: Variants = {
+    hidden: { scale: 0.9, opacity: 0, rotate: -2 },
+    visible: {
+      scale: 1,
+      opacity: 1,
+      rotate: 0,
+      transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] as any, delay: 0.4 }
+    }
+  };
+
   const handleOpenAdmin = () => {
-    const authToken = localStorage.getItem('weversity_admin_auth');
-    if (authToken && onOpenAdminPanel) {
-      onOpenAdminPanel();
-    } else if (onOpenAdminLogin) {
+    if (onOpenAdminLogin) {
       onOpenAdminLogin();
     }
   };
@@ -111,30 +139,36 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="absolute top-1/3 left-10 w-[350px] h-[300px] bg-indigo-100/40 rounded-full blur-[90px] pointer-events-none -z-10" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center"
+          >
             
             {/* Left Column Content */}
             <div className="lg:col-span-7 space-y-6 text-left">
               
               {/* Pill Badge */}
-              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/90 text-xs sm:text-[13px] font-bold shadow-xs">
+              <motion.div variants={itemVariants} className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/90 text-xs sm:text-[13px] font-bold shadow-xs">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Live Online Classes &amp; Software House • Enroll Today</span>
-              </div>
+              </motion.div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#18113C] tracking-tight leading-[1.12]">
+              <motion.h1 variants={itemVariants} className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold text-[#18113C] tracking-tight leading-[1.12]">
                 Websites & Custom Software<br />
                 That <span className="text-[#6D28D9]">Mean Business.</span>
-              </h1>
+              </motion.h1>
 
               {/* Description */}
-              <p className="text-sm sm:text-base text-gray-600 max-w-xl leading-relaxed">
+              <motion.p variants={itemVariants} className="text-sm sm:text-base text-gray-600 max-w-xl leading-relaxed">
                 We engineer high-performance web applications, bespoke Laravel backends, multi-tenant SaaS platforms, and Flutter mobile apps. Hand-crafted code, zero page-builder bloat, and guaranteed Google Core Web Vitals.
-              </p>
+              </motion.p>
 
               {/* 3 Call to Action Buttons Row */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3 pt-2">
                 
                 {/* 1. Get a Free Project Proposal */}
                 <button
@@ -147,13 +181,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </button>
 
                 {/* 2. View Portfolio */}
-                <button
-                  onClick={() => setActiveTab('portfolio')}
-                  className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-[#6D28D9] bg-purple-50 hover:bg-purple-100 border border-purple-200 shadow-xs transition-all flex items-center gap-2"
+                <a
+                  href="https://glowing-octo-winner-rust.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-[#6D28D9] bg-purple-50 hover:bg-purple-100 border border-purple-200 shadow-xs transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Package className="w-4 h-4 text-[#6D28D9]" />
                   <span>View Portfolio</span>
-                </button>
+                </a>
 
                 {/* 3. Instant Cost Calculator */}
                 <button
@@ -177,23 +213,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <span>WhatsApp Direct</span>
                 </a>
 
-                {/* 5. Admin Panel Button (Requested directly on Home Page) */}
-                {isDeviceAuthorized && (
-                  <button
-                    onClick={handleOpenAdmin}
-                    className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-[#18113C] via-[#2D1457] to-[#4C1D95] hover:from-[#251249] hover:to-[#5B21B6] border border-purple-500/40 shadow-lg shadow-purple-950/25 transition-all flex items-center gap-2.5 group hover:scale-[1.02] active:scale-[0.98]"
-                    title="Admin Backend (Password Protected)"
-                  >
-                    <div className="w-5 h-5 rounded-md bg-purple-500/30 flex items-center justify-center text-purple-300 group-hover:text-white transition-colors">
-                      <Lock className="w-3.5 h-3.5" />
-                    </div>
-                    <span>Admin Panel</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-900/80 text-purple-200 border border-purple-400/30 font-semibold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Backend
-                    </span>
-                  </button>
-                )}
+                {/* 5. Admin Backend Button (Always visible for access) */}
+                <button
+                  onClick={handleOpenAdmin}
+                  className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-[#18113C] via-[#2D1457] to-[#4C1D95] hover:from-[#251249] hover:to-[#5B21B6] border border-purple-500/40 shadow-lg shadow-purple-950/25 transition-all flex items-center gap-2.5 group hover:scale-[1.02] active:scale-[0.98]"
+                  title="Admin Backend (Password Protected)"
+                >
+                  <div className="w-5 h-5 rounded-md bg-purple-500/30 flex items-center justify-center text-purple-300 group-hover:text-white transition-colors">
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                  <span>Admin Backend</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-900/80 text-purple-200 border border-purple-400/30 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Portal
+                  </span>
+                </button>
 
                 {/* 6. Logout Button (Moved from Navbar) */}
                 {onLogout && (
@@ -207,7 +241,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </button>
                 )}
 
-              </div>
+                {/* 7. Academic Results Button */}
+                <button
+                  onClick={() => setActiveTab('results')}
+                  className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-[#6D28D9] bg-white border border-purple-200 hover:bg-purple-50 shadow-xs transition-all flex items-center gap-2 group cursor-pointer"
+                >
+                  <Award className="w-4 h-4 text-[#6D28D9] group-hover:scale-110 transition-transform" />
+                  <span>Academic Results</span>
+                </button>
+
+                {/* 8. Academic Programs Button */}
+                <button
+                  onClick={() => setActiveTab('academic')}
+                  className="px-5 py-3.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-gradient-to-r from-[#6D28D9] to-[#8B5CF6] hover:from-[#5B21B6] hover:to-[#7C3AED] shadow-lg shadow-purple-600/25 transition-all flex items-center gap-2 group cursor-pointer"
+                >
+                  <GraduationCap className="w-4 h-4 text-purple-100 group-hover:scale-110 transition-transform" />
+                  <span>Academic Programs</span>
+                </button>
+
+              </motion.div>
 
             </div>
 
@@ -215,7 +267,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="lg:col-span-5 relative flex flex-col items-center">
               
               {/* Floating Tech Pill Tags Bar */}
-              <div className="w-full flex justify-center lg:justify-end mb-4">
+              <motion.div 
+                variants={itemVariants}
+                className="w-full flex justify-center lg:justify-end mb-4"
+              >
                 <div className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-purple-150 shadow-sm text-xs font-bold">
                   <span className="flex items-center gap-1.5 text-blue-600 px-2 py-0.5 rounded-md hover:bg-blue-50">
                     <Globe className="w-3.5 h-3.5 text-blue-500" /> Web Apps
@@ -232,22 +287,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <Cloud className="w-3.5 h-3.5 text-purple-500" /> SaaS
                   </span>
                 </div>
-              </div>
+              </motion.div>
 
               {/* The 3D Tech Illustration from screenshot */}
-              <div className="relative w-full max-w-[500px] aspect-square overflow-hidden rounded-full border-4 border-white shadow-xl animate-float">
+              <motion.div 
+                variants={imageVariants}
+                className="relative w-full max-w-[500px] aspect-square overflow-hidden rounded-full border-4 border-white shadow-xl animate-float"
+              >
                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/70 via-purple-500/60 to-purple-400/50 rounded-full blur-2xl transform scale-95 -z-10" />
                 <img 
-                  src="/assets/aistudio/image_ec98d7d2.png" 
-                  alt="Websites & Custom Software That Mean Business"
+                  src="/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png" 
+                  alt="KMAWD - Websites & Custom Software That Mean Business"
                   className="w-full h-full object-cover select-none"
                   loading="eager"
                 />
-              </div>
+              </motion.div>
 
             </div>
 
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -689,14 +747,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         {/* View Full Portfolio Button */}
         <div className="text-center pt-2">
-          <button
-            onClick={() => setActiveTab('portfolio')}
-            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-bold text-sm shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 transition-all group"
+          <a
+            href="https://glowing-octo-winner-rust.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-bold text-sm shadow-lg shadow-purple-600/25 hover:shadow-purple-600/35 transition-all group cursor-pointer"
           >
             <Package className="w-4 h-4 text-purple-200" />
-            <span>View Full Portfolio & Case Studies (12+ Projects)</span>
+            <span>View Full Portfolio & Case Studies</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
-          </button>
+          </a>
         </div>
       </section>
 
@@ -732,38 +792,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             );
           })}
-        </div>
-      </section>
-
-      {/* 7. ADMIN BACKEND PORTAL CARD (DIRECTLY ON HOME PAGE) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0B0818] via-[#170E33] to-[#2B0E5A] border border-purple-500/30 p-8 sm:p-10 shadow-2xl">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold">
-                <Lock className="w-3.5 h-3.5 text-purple-400" />
-                <span>WeVersity Management Portal</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-white font-display">
-                WeVersity Admin Backend Access
-              </h3>
-              <p className="text-purple-200/80 text-sm leading-relaxed">
-                Direct administrative access to live site analytics, incoming quote requests & student messages, course management, teacher records, and portal configuration. Protected with your master password.
-              </p>
-            </div>
-            <button
-              onClick={handleOpenAdmin}
-              className="shrink-0 px-6 py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-[#7C3AED] via-[#8B5CF6] to-[#6D28D9] hover:from-[#6D28D9] hover:to-[#5B21B6] shadow-xl shadow-purple-900/40 flex items-center gap-2.5 transition-all hover:scale-105 active:scale-95 border border-purple-400/40 group"
-            >
-              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                <Lock className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span>Open Admin Backend</span>
-              <ArrowRight className="w-4 h-4 text-purple-200 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
         </div>
       </section>
 

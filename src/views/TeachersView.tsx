@@ -95,21 +95,18 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16">
-      
-      {/* 1. Header Section */}
+    <div className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      {/* 1. Header Section matching Courses Style */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider shadow-xs">
-          <GraduationCap className="w-4 h-4 text-[#6D28D9]" />
-          <span>Live Online Classes &amp; Expert Mentorship</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
+          <span>EXPERT FACULTY</span>
         </div>
-        
-        <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
-          Interactive Live Sessions &amp; <span className="text-[#6D28D9]">Expert Faculty</span>
+        <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
+          Mentors &amp; <span className="text-[#6D28D9]">Instructors</span>
         </h1>
-        
-        <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-          Join our live interactive online classes or explore our senior software engineering faculty. Learn with real-time screen sharing, code reviews, and direct mentorship.
+        <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+          Learn from industry pioneers, senior engineers, and architects who are actively building mission-critical software.
         </p>
 
         {/* Sub-tab Switcher */}
@@ -123,7 +120,7 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Our Teachers &amp; Faculty</span>
+            <span>Our Faculty</span>
           </button>
           
           <button
@@ -135,7 +132,7 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
             }`}
           >
             <Video className="w-4 h-4" />
-            <span>Live Online Classes Schedule</span>
+            <span>Live Schedule</span>
           </button>
         </div>
       </div>
@@ -144,8 +141,6 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
         <>
           {/* 2. Filter & Search Controls */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-white border border-purple-150/80 shadow-xs">
-            
-            {/* Category Pills */}
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               {categories.map((c) => (
                 <button
@@ -162,96 +157,61 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
               ))}
             </div>
 
-            {/* Search Input */}
             <div className="relative w-full md:w-72">
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search teachers by name or skill..."
-                className="w-full bg-[#FAF9FD] border border-purple-150 rounded-xl pl-9 pr-3.5 py-2 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9]"
+                placeholder="Search instructors..."
+                className="w-full bg-[#FAF9FD] border border-purple-150 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#6D28D9]"
               />
             </div>
           </div>
 
-          {/* 3. Teachers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredTeachers.map((teacher) => (
+          {/* 3. Teachers Grid matching Courses 4-column style */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {filteredTeachers.map((teacher, idx) => (
               <div
                 key={teacher.id}
-                className="group rounded-3xl bg-white border border-purple-150/90 hover:border-purple-400 p-6 flex flex-col justify-between space-y-6 shadow-sm hover:shadow-2xl hover:shadow-purple-900/10 hover:-translate-y-2 transition-all duration-300"
+                className={`group p-6 rounded-3xl bg-white transition-all duration-300 flex flex-col justify-between relative overflow-hidden border ${
+                  idx % 4 === 0 
+                    ? 'border-purple-300 shadow-md shadow-purple-900/5' 
+                    : 'border-purple-100/90'
+                } hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400`}
               >
-                <div className="space-y-5">
-                  
-                  {/* Top Row: Avatar + Verified Tag + Rating */}
-                  <div className="flex items-start gap-4">
-                    <div className="relative shrink-0">
-                      <img
-                        src={teacher.avatar}
-                        alt={teacher.name}
-                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-purple-200 group-hover:border-[#6D28D9] shadow-sm transition-colors duration-300"
-                      />
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#6D28D9] text-white flex items-center justify-center border-2 border-white shadow-xs" title="Verified Instructor">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-150 group-hover:bg-[#6D28D9] group-hover:text-white group-hover:border-[#6D28D9] transition-all duration-300">
-                          {teacher.categoryLabel}
-                        </span>
-                        <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span>{teacher.rating}</span>
-                          <span className="text-[10px] text-gray-400 font-normal">({teacher.reviewsCount})</span>
-                        </div>
-                      </div>
-
-                      <h3 className="font-display font-extrabold text-base sm:text-lg text-[#18113C] group-hover:text-[#6D28D9] transition-colors truncate">
-                        {teacher.name}
-                      </h3>
-
-                      <p className="text-xs font-medium text-purple-700 truncate group-hover:text-purple-900 transition-colors">
-                        {teacher.role}
-                      </p>
-                    </div>
+                <div className="space-y-4">
+                  {/* Instructor Avatar in square badge style */}
+                  <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:border-[#6D28D9]">
+                    <img 
+                      src={teacher.avatar} 
+                      alt={teacher.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
 
-                  {/* Stats Bar */}
-                  <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-purple-50/60 border border-purple-100 text-center group-hover:bg-purple-100/40 group-hover:border-purple-200 transition-all duration-300">
-                    <div>
-                      <div className="text-[10px] text-gray-400 font-medium">Experience</div>
-                      <div className="text-xs font-extrabold text-[#18113C] group-hover:text-[#6D28D9] transition-colors">{teacher.experience}</div>
+                  <div>
+                    <h3 className="font-display font-bold text-base text-[#18113C] group-hover:text-[#6D28D9] transition-colors duration-300">
+                      {teacher.name}
+                    </h3>
+                    <p className="text-xs text-[#6D28D9] font-bold uppercase tracking-wide mt-0.5">
+                      {teacher.role}
+                    </p>
+                    <div className="flex items-center gap-1 mt-1 text-amber-500 text-[10px] font-bold">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      <span>{teacher.rating} ({teacher.reviewsCount})</span>
                     </div>
-                    <div className="border-l border-purple-200/60">
-                      <div className="text-[10px] text-gray-400 font-medium">Students Mentored</div>
-                      <div className="text-xs font-extrabold text-[#6D28D9] group-hover:text-[#5B21B6] transition-colors">{teacher.studentsCount}</div>
-                    </div>
-                  </div>
-
-                  {/* Bio */}
-                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">
-                    {teacher.bio}
-                  </p>
-
-                  {/* Highlights */}
-                  <div className="space-y-1.5 pt-1">
-                    {(teacher.highlights || []).map((h: string, i: number) => (
-                      <div key={i} className="flex items-start gap-2 text-[11px] text-gray-600">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#6D28D9] shrink-0 mt-0.5" />
-                        <span>{h}</span>
-                      </div>
-                    ))}
+                    <p className="text-xs text-gray-500 group-hover:text-gray-600 mt-2 line-clamp-3 leading-relaxed transition-colors duration-300">
+                      {teacher.bio}
+                    </p>
                   </div>
 
                   {/* Skills Tags */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {(teacher.skills || []).map((skill: string) => (
+                    {(teacher.skills || []).slice(0, 3).map((skill: string) => (
                       <span
                         key={skill}
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gray-50 text-gray-700 border border-gray-150 group-hover:border-purple-200 group-hover:bg-purple-50 group-hover:text-purple-900 transition-colors"
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 border border-purple-100 group-hover:bg-purple-100/70 group-hover:border-purple-200 transition-colors duration-300"
                       >
                         {skill}
                       </span>
@@ -259,92 +219,96 @@ export const TeachersView: React.FC<TeachersViewProps> = ({
                   </div>
                 </div>
 
-                {/* Bottom Actions */}
-                <div className="pt-4 border-t border-gray-100 space-y-2">
-                  <div className="flex items-center gap-2">
-                    {/* View Course Button */}
-                    <button
-                      onClick={() => handleCourseClick(teacher.primaryCourse)}
-                      className="flex-1 py-2.5 px-3 rounded-xl font-bold text-xs bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-md shadow-purple-600/20 transition-all flex items-center justify-center gap-1.5 group/btn"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span>View Course</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
-                    </button>
-
-                    {/* Google Meet Chat with Instructor */}
-                    <a
-                      href="https://meet.google.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2.5 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 transition-colors flex items-center justify-center shrink-0"
-                      title="Join Google Meet with this instructor"
-                    >
-                      <Video className="w-4 h-4 text-blue-600" />
-                    </a>
+                {/* Bottom Row */}
+                <div className="pt-5 mt-5 border-t border-gray-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Expertise</span>
+                    <span className="text-xs font-bold text-[#6D28D9] group-hover:text-[#5B21B6] transition-colors duration-300">
+                      {teacher.experience}
+                    </span>
                   </div>
+
+                  <button
+                    onClick={() => handleCourseClick(teacher.primaryCourse)}
+                    className="w-9 h-9 rounded-full bg-[#6D28D9] text-white flex items-center justify-center transition-all duration-300 group-hover:bg-[#5B21B6] group-hover:scale-110 shadow-sm"
+                    aria-label="View course"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </>
       ) : (
-        /* Live Online Classes Schedule View */
+        /* Live Online Classes Schedule View - Realigned to 4-column grid style */
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {sessionsData.map((batch, index) => (
               <div 
                 key={index}
-                className="p-8 rounded-3xl bg-white border border-purple-150 hover:border-purple-300 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between space-y-6"
+                className="group p-6 rounded-3xl bg-white border border-purple-100 transition-all duration-300 flex flex-col justify-between relative overflow-hidden hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 cursor-default"
               >
                 <div className="space-y-4">
+                  {/* Status Badge in square-ish style */}
                   <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#6D28D9] group-hover:bg-[#6D28D9] group-hover:text-white transition-all duration-300">
+                      <Video className="w-5 h-5 stroke-[1.8]" />
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                      batch.seatsLeft.includes('remaining') 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                        : 'bg-purple-50 text-purple-700 border-purple-100'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${batch.seatsLeft.includes('remaining') ? 'bg-emerald-500 animate-pulse' : 'bg-purple-500'}`}></span>
                       <span>{batch.seatsLeft}</span>
-                    </span>
-                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200">
-                      {batch.level}
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-display font-bold text-gray-900">{batch.title}</h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">{batch.description}</p>
+                  <div>
+                    <h3 className="font-display font-bold text-base text-[#18113C] group-hover:text-[#6D28D9] transition-colors duration-300 leading-tight">
+                      {batch.title}
+                    </h3>
+                    <p className="text-[10px] font-bold text-[#6D28D9] uppercase tracking-wide mt-1">
+                      {batch.level}
+                    </p>
+                    <p className="text-xs text-gray-500 group-hover:text-gray-600 mt-2 line-clamp-3 leading-relaxed transition-colors duration-300">
+                      {batch.description}
+                    </p>
+                  </div>
 
-                  <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 space-y-2 text-xs">
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <GraduationCap className="w-4 h-4 text-[#6D28D9]" />
-                      <span>Instructor: <strong className="text-gray-900">{batch.instructor}</strong></span>
+                  {/* Batch Details Tags */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-2 text-[10px] text-gray-600">
+                      <Calendar className="w-3.5 h-3.5 text-[#6D28D9]" />
+                      <span className="truncate">{batch.schedule}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <Calendar className="w-4 h-4 text-[#6D28D9]" />
-                      <span>Schedule: <strong className="text-gray-900">{batch.schedule}</strong></span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <Clock className="w-4 h-4 text-[#6D28D9]" />
-                      <span>Duration: <strong className="text-gray-900">{batch.duration}</strong></span>
+                    <div className="flex items-center gap-2 text-[10px] text-gray-600">
+                      <Clock className="w-3.5 h-3.5 text-[#6D28D9]" />
+                      <span>{batch.duration} • Live Zoom</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
+                {/* Bottom Row Actions */}
+                <div className="pt-5 mt-5 border-t border-gray-100 flex flex-col gap-2">
                   <button
                     onClick={() => {
                       if (onOpenQuoteModal) onOpenQuoteModal();
                     }}
-                    className="flex-1 py-3 px-4 rounded-xl font-bold text-xs bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-md shadow-purple-600/25 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-2.5 rounded-xl font-bold text-[10px] bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm transition-all flex items-center justify-center gap-2"
                   >
-                    <span>Enroll in Live Class</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>Enroll Now</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                   <a
                     href="https://meet.google.com/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-3 px-4 rounded-xl font-bold text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2 rounded-xl font-bold text-[10px] bg-purple-50 hover:bg-purple-100 text-[#6D28D9] border border-purple-200 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Video className="w-4 h-4 text-blue-600" />
-                    <span>Join Meet</span>
+                    <Video className="w-3.5 h-3.5" />
+                    <span>Demo Link</span>
                   </a>
                 </div>
               </div>

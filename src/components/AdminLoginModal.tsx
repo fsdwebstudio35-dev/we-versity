@@ -24,8 +24,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onClose,
   onLoginSuccess
 }) => {
-  const [email, setEmail] = useState(() => localStorage.getItem('weversity_admin_email') || COMPANY_INFO.email || 'admin@weversity.com');
-  const [phone, setPhone] = useState(() => localStorage.getItem('weversity_admin_phone') || COMPANY_INFO.phone || '+92 301 9249721');
+  const [email, setEmail] = useState(() => localStorage.getItem('kmawd_admin_email') || COMPANY_INFO.email || 'admin@kmawd.com');
+  const [phone, setPhone] = useState(() => localStorage.getItem('kmawd_admin_phone') || COMPANY_INFO.phone || '+92 301 9249721');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberDevice, setRememberDevice] = useState(true);
@@ -45,8 +45,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     setError('');
 
     // Persist email & phone preference
-    if (email.trim()) localStorage.setItem('weversity_admin_email', email.trim());
-    if (phone.trim()) localStorage.setItem('weversity_admin_phone', phone.trim());
+    if (email.trim()) localStorage.setItem('kmawd_admin_email', email.trim());
+    if (phone.trim()) localStorage.setItem('kmawd_admin_phone', phone.trim());
 
     try {
       const response = await fetch('/api/admin/login', {
@@ -59,9 +59,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
       if (response.ok && data.success) {
         if (rememberDevice) {
-          localStorage.setItem('weversity_admin_device_authorized', 'true');
+          localStorage.setItem('kmawd_admin_device_authorized', 'true');
         }
-        localStorage.setItem('weversity_admin_auth', data.token || 'true');
+        localStorage.setItem('kmawd_admin_auth', data.token || 'true');
         onLoginSuccess(rememberDevice);
         setPassword('');
         onClose();
@@ -69,9 +69,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         // Fallback check if server offline or default master password matches
         if (password === 'king295') {
           if (rememberDevice) {
-            localStorage.setItem('weversity_admin_device_authorized', 'true');
+            localStorage.setItem('kmawd_admin_device_authorized', 'true');
           }
-          localStorage.setItem('weversity_admin_auth', 'wv-token-offline');
+          localStorage.setItem('kmawd_admin_auth', 'kmawd-token-offline');
           onLoginSuccess(rememberDevice);
           setPassword('');
           onClose();
@@ -83,9 +83,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       // Offline fallback
       if (password === 'king295') {
         if (rememberDevice) {
-          localStorage.setItem('weversity_admin_device_authorized', 'true');
+          localStorage.setItem('kmawd_admin_device_authorized', 'true');
         }
-        localStorage.setItem('weversity_admin_auth', 'wv-token-offline');
+        localStorage.setItem('kmawd_admin_auth', 'kmawd-token-offline');
         onLoginSuccess(rememberDevice);
         setPassword('');
         onClose();
@@ -116,13 +116,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header Icon with WeVersity Logo */}
+        {/* Header Icon with KMAWD Logo */}
         <div className="flex flex-col items-center text-center space-y-3 mb-5">
           <div className="relative">
             <div className="w-16 h-16 rounded-full bg-white p-1 border-2 border-purple-400 shadow-xl shadow-purple-600/30 overflow-hidden flex items-center justify-center">
               <img 
-                src="/assets/aistudio/image_b4867fb4.png" 
-                alt="WeVersity Logo" 
+                src="/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png" 
+                alt="KMAWD Logo" 
                 className="w-full h-full object-contain"
               />
             </div>
@@ -134,7 +134,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/80 border border-purple-800/60 text-[11px] font-semibold text-purple-300 mb-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-              <span>WeVersity Secure Backend</span>
+              <span>KMAWD Secure Backend</span>
             </div>
             <h3 className="text-2xl font-display font-bold text-white tracking-tight">
               Admin Access Portal
@@ -168,7 +168,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. admin@weversity.com"
+                placeholder="e.g. admin@kmawd.com"
                 className="w-full pl-10 pr-4 py-2.5 bg-[#1F1744] border border-purple-700/60 rounded-xl text-white placeholder-purple-400/50 text-xs sm:text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
               />
             </div>
@@ -207,10 +207,15 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
                 placeholder="Enter password..."
                 autoFocus
-                className="w-full pl-10 pr-10 py-2.5 bg-[#1F1744] border border-purple-700/60 rounded-xl text-white placeholder-purple-400/50 text-xs sm:text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-all"
+                className={`w-full pl-10 pr-10 py-2.5 bg-[#1F1744] border rounded-xl text-white placeholder-purple-400/50 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-purple-400 transition-all ${
+                  error ? 'border-rose-500 animate-shake' : 'border-purple-700/60 focus:border-purple-400'
+                }`}
               />
               <button
                 type="button"

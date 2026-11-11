@@ -49,7 +49,7 @@ export const AboutView: React.FC<AboutViewProps> = ({
   // Listen to custom event or storage event for instant live update
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'weversity_about_data' && e.newValue) {
+      if ((e.key === 'kmawd_about_data' || e.key === 'weversity_about_data') && e.newValue) {
         try {
           setData(JSON.parse(e.newValue));
         } catch {
@@ -62,7 +62,7 @@ export const AboutView: React.FC<AboutViewProps> = ({
       if (customEvent.detail) {
         setData(customEvent.detail);
       } else {
-        const saved = localStorage.getItem('weversity_about_data');
+        const saved = localStorage.getItem('kmawd_about_data') || localStorage.getItem('weversity_about_data');
         if (saved) {
           try {
             setData(JSON.parse(saved));
@@ -72,10 +72,10 @@ export const AboutView: React.FC<AboutViewProps> = ({
     };
 
     window.addEventListener('storage', handleStorage);
-    window.addEventListener('weversity_about_updated', handleCustomSync);
+    window.addEventListener('kmawd_about_updated', handleCustomSync);
     return () => {
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('weversity_about_updated', handleCustomSync);
+      window.removeEventListener('kmawd_about_updated', handleCustomSync);
     };
   }, []);
 
@@ -119,14 +119,17 @@ export const AboutView: React.FC<AboutViewProps> = ({
         </p>
       </div>
 
-      {/* Dual Office Presence Showcase */}
+      {/* Dual Office Presence Showcase - Realigned to card grid style */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Lahore HQ */}
-        <div className="p-8 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-6 relative overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:border-purple-400 transition-all">
+        <div className="p-8 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-6 relative overflow-hidden group hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 transition-all duration-300">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <span className="text-xs font-bold uppercase tracking-widest text-[#6D28D9] flex items-center gap-1.5">
-              <MapPin className="w-4 h-4" /> {lahoreOffice.label || 'Principal Engineering Hub'}
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-[#6D28D9] group-hover:bg-[#6D28D9] group-hover:text-white transition-all">
+                <MapPin className="w-4 h-4" />
+              </div>
+              {lahoreOffice.label || 'Principal Engineering Hub'}
             </span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200 font-bold">
               {lahoreOffice.city || 'Lahore, Pakistan'}
@@ -134,7 +137,9 @@ export const AboutView: React.FC<AboutViewProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-xl font-display font-bold text-gray-900">{lahoreOffice.title}</h3>
+            <h3 className="text-xl font-display font-bold text-[#18113C] group-hover:text-[#6D28D9] transition-colors">
+              {lahoreOffice.title}
+            </h3>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
               {lahoreOffice.address}
             </p>
@@ -156,10 +161,13 @@ export const AboutView: React.FC<AboutViewProps> = ({
         </div>
 
         {/* London Office */}
-        <div className="p-8 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-6 relative overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:border-purple-300 transition-all">
+        <div className="p-8 rounded-3xl bg-white border border-purple-100 shadow-sm space-y-6 relative overflow-hidden group hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-300 transition-all duration-300">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <span className="text-xs font-bold uppercase tracking-widest text-indigo-700 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4" /> {londonOffice.label || 'European Client Liaison'}
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-700 group-hover:bg-indigo-700 group-hover:text-white transition-all">
+                <MapPin className="w-4 h-4" />
+              </div>
+              {londonOffice.label || 'European Client Liaison'}
             </span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">
               {londonOffice.city || 'London, United Kingdom'}
@@ -167,7 +175,9 @@ export const AboutView: React.FC<AboutViewProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-xl font-display font-bold text-gray-900">{londonOffice.title}</h3>
+            <h3 className="text-xl font-display font-bold text-[#18113C] group-hover:text-indigo-700 transition-colors">
+              {londonOffice.title}
+            </h3>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
               {londonOffice.address}
             </p>
@@ -199,11 +209,11 @@ export const AboutView: React.FC<AboutViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {principles.map((v) => (
-            <div key={v.id} className="group p-6 rounded-3xl bg-white border border-purple-100 space-y-3 shadow-xs hover:-translate-y-1 hover:shadow-lg hover:border-purple-400 transition-all">
-              <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#6D28D9] group-hover:bg-[#6D28D9] group-hover:text-white transition-all duration-300">
+            <div key={v.id} className="group p-6 rounded-3xl bg-white border border-purple-100 space-y-3 shadow-sm hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 transition-all duration-300">
+              <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#6D28D9] group-hover:bg-[#6D28D9] group-hover:text-white transition-all duration-300">
                 {getPrincipleIcon(v.icon)}
               </div>
-              <h4 className="font-bold text-gray-900 text-base">{v.title}</h4>
+              <h4 className="font-bold text-[#18113C] text-base group-hover:text-[#6D28D9] transition-colors">{v.title}</h4>
               <p className="text-xs text-gray-600 leading-relaxed">{v.desc}</p>
             </div>
           ))}
@@ -217,21 +227,21 @@ export const AboutView: React.FC<AboutViewProps> = ({
           <h2 className="text-3xl font-display font-bold text-gray-950">Our Journey (2016 - 2026)</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {milestones.map((m) => (
             <div 
               key={m.id}
-              className="p-6 rounded-3xl bg-white border border-purple-100 space-y-3 relative hover:-translate-y-1 hover:shadow-lg hover:border-purple-400 shadow-sm transition-all"
+              className="p-6 rounded-3xl bg-white border border-purple-100 space-y-3 relative hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 shadow-sm transition-all duration-300 group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-display font-extrabold text-[#6D28D9] block">
+                <span className="text-2xl font-display font-extrabold text-[#6D28D9] block group-hover:scale-110 transition-transform">
                   {m.year}
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-100 flex items-center gap-1">
                   <Calendar className="w-3 h-3" /> Milestone
                 </span>
               </div>
-              <h4 className="text-base font-bold text-gray-900">{m.title}</h4>
+              <h4 className="text-base font-bold text-[#18113C] group-hover:text-[#6D28D9] transition-colors">{m.title}</h4>
               <p className="text-xs text-gray-600 leading-relaxed">{m.desc}</p>
             </div>
           ))}
@@ -247,17 +257,19 @@ export const AboutView: React.FC<AboutViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {leadership.map((lead) => (
-            <div key={lead.id} className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4 text-center shadow-sm hover:-translate-y-1 hover:shadow-lg hover:border-purple-400 transition-all">
-              <img
-                src={lead.avatar}
-                alt={lead.name}
-                className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-purple-200"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/assets/aistudio/image_f804651e.png';
-                }}
-              />
+            <div key={lead.id} className="p-6 rounded-3xl bg-white border border-purple-100 space-y-4 text-center shadow-sm hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400 transition-all duration-300 group">
+              <div className="w-20 h-20 rounded-2xl mx-auto border-2 border-purple-100 overflow-hidden group-hover:scale-110 transition-transform duration-300 shadow-md">
+                <img
+                  src={lead.avatar}
+                  alt={lead.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/assets/aistudio/image_f804651e.png';
+                  }}
+                />
+              </div>
               <div className="space-y-1">
-                <h4 className="text-base font-bold text-gray-900">{lead.name}</h4>
+                <h4 className="text-base font-bold text-[#18113C] group-hover:text-[#6D28D9] transition-colors">{lead.name}</h4>
                 <div className="text-xs font-bold text-[#6D28D9]">{lead.role}</div>
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">

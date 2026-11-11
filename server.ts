@@ -224,9 +224,9 @@ async function startServer() {
 
   let aboutData = persistentData?.aboutData || {
     hero: {
-      badge: "About WeVersity • Since 2016",
+      badge: "About KMAWD • Since 2016",
       title: "Software Craftsmen Who Believe in Code That Works.",
-      subtitle: "Operating from Lahore, Pakistan with international liaison in London, UK, WeVersity exists to rid the web of bloated, slow templates and replace them with resilient, high-speed digital engineering."
+      subtitle: "Operating from Lahore, Pakistan with international liaison in London, UK, KMAWD exists to rid the web of bloated, slow templates and replace them with resilient, high-speed digital engineering."
     },
     offices: {
       lahore: {
@@ -255,7 +255,7 @@ async function startServer() {
         id: "lead-1",
         name: "Shahbaz Aslam",
         role: "Chief Executive Officer & Founder",
-        bio: "Founder of WeVersity leading global software engineering, enterprise AI transformation, and expert mentorship in Claude AI and intelligent systems.",
+        bio: "Founder of KMAWD leading global software engineering, enterprise AI transformation, and expert mentorship in Claude AI and intelligent systems.",
         avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png"
       }
     ],
@@ -264,7 +264,7 @@ async function startServer() {
         id: "milestone-1",
         year: "2016",
         title: "Founding in Lahore, Pakistan",
-        desc: "WeVersity was founded on Turner Road, Lahore with a core focus on custom web development and PHP software for forward-looking local businesses."
+        desc: "KMAWD was founded on Turner Road, Lahore with a core focus on custom web development and PHP software for forward-looking local businesses."
       }
     ],
     principles: [
@@ -295,11 +295,11 @@ async function startServer() {
       rating: 5.0,
       reviewsCount: 485,
       avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png",
-      bio: "Chief Executive Officer & Founder of WeVersity. Industry pioneer in Claude AI architectures, Anthropic LLM prompting, automated development workflows, and enterprise generative AI solutions with 10+ years of tech leadership.",
+      bio: "Chief Executive Officer & Founder of KMAWD. Industry pioneer in Claude AI architectures, Anthropic LLM prompting, automated development workflows, and enterprise generative AI solutions with 10+ years of tech leadership.",
       primaryCourse: "Claude AI Mastery",
       assignedCourses: ["Claude AI Mastery", "Generative AI Engineering", "AI Productivity for Developers"],
       skills: ["Claude 3.5 Sonnet", "Prompt Engineering", "Anthropic Claude API", "LLM Workflows", "AI Automation", "Enterprise Architecture"],
-      highlights: ["CEO & Founder of WeVersity", "10+ Years Tech Leadership & Strategy", "Trained 2,500+ Professionals & Developers"],
+      highlights: ["CEO & Founder of KMAWD", "10+ Years Tech Leadership & Strategy", "Trained 2,500+ Professionals & Developers"],
       socials: { linkedin: "https://linkedin.com", github: "https://github.com" }
     }
   ];
@@ -313,7 +313,7 @@ async function startServer() {
       time: "8:00 PM PKT",
       duration: "90 Mins",
       status: "Upcoming",
-      link: "https://zoom.us/j/weversity",
+      link: "https://zoom.us/j/kmawd",
       thumbnail: "/assets/aistudio/image_85a3982c.png"
     }
   ];
@@ -321,7 +321,7 @@ async function startServer() {
   let contestsData = persistentData?.contestsData || [
     {
       id: "hackathon-2026",
-      title: "WeVersity Full-Stack Hackathon 2026",
+      title: "KMAWD Full-Stack Hackathon 2026",
       description: "Build a production-ready SaaS application in 48 hours using React, Laravel, and Gemini AI. Compete for the ultimate engineering title.",
       date: "Dec 10, 2026",
       prize: "$1,500 Cash + Internship",
@@ -331,6 +331,53 @@ async function startServer() {
   ];
 
   let studentsData = persistentData?.studentsData || [];
+
+  let resultsData = persistentData?.resultsData || [
+    { id: "1", studentName: "Ahmed Raza", courseTitle: "Web Development", score: "98%", status: "Distinction", date: "Oct 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed", isCertified: true },
+    { id: "2", studentName: "Sara Khan", courseTitle: "UI/UX Design", score: "95%", status: "Merit", date: "Sep 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara", isCertified: true },
+    { id: "3", studentName: "Bilal Sheikh", courseTitle: "Laravel Backend", score: "92%", status: "Merit", date: "Oct 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bilal", isCertified: true },
+    { id: "4", studentName: "Zainab Ali", courseTitle: "Claude AI Mastery", score: "100%", status: "Distinction", date: "Nov 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Zainab", isCertified: true },
+    { id: "5", studentName: "Hamza Malik", courseTitle: "Flutter Mobile", score: "88%", status: "Pass", date: "Aug 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Hamza", isCertified: true },
+    { id: "6", studentName: "Dua Fatima", courseTitle: "Digital Marketing", score: "94%", status: "Merit", date: "Oct 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Dua", isCertified: true },
+  ];
+
+  let academicData = persistentData?.academicData || {
+    pillars: [
+      {
+        title: "Industry Verified",
+        desc: "Curriculum designed around current market demands and global engineering standards.",
+        iconName: "ShieldCheck",
+        color: "text-emerald-600",
+        bg: "bg-emerald-50"
+      },
+      {
+        title: "Practical Grading",
+        desc: "Scores based on 70% project work and 30% technical assessments and code reviews.",
+        iconName: "FileCheck",
+        color: "text-[#6D28D9]",
+        bg: "bg-purple-50"
+      },
+      {
+        title: "Live Mentorship",
+        desc: "Real-time interaction with senior developers from our Lahore software house.",
+        iconName: "Users",
+        color: "text-blue-600",
+        bg: "bg-blue-50"
+      }
+    ],
+    cohorts: [
+      { id: "1", course: "Master Claude AI", date: "Dec 05, 2026", status: "Filling Fast", spots: "8 left" },
+      { id: "2", course: "Modern Web Development", date: "Jan 12, 2027", status: "Open", spots: "25 spots" },
+      { id: "3", course: "Laravel Backend Mastery", date: "Dec 15, 2026", status: "Closed", spots: "Sold Out" },
+      { id: "4", course: "Flutter Mobile Apps", date: "Jan 05, 2027", status: "Early Bird", spots: "Limited" }
+    ],
+    stats: [
+      { label: "Graduation Rate", val: "92%" },
+      { label: "Job Placements", val: "78%" },
+      { label: "Partner Companies", val: "45+" },
+      { label: "Total Graduates", val: "1,200+" }
+    ]
+  };
 
   let teamMembersData = persistentData?.teamMembersData || [
     {
@@ -343,29 +390,33 @@ async function startServer() {
       experience: "10+ Years",
       avatar: "/assets/aistudio/Screenshot_2026-10-30_181313_cade6561.png",
       bio: "Leading global software engineering and enterprise AI transformation.",
-      keyAchievement: "Scaled WeVersity to 250+ delivered projects worldwide.",
+      keyAchievement: "Scaled KMAWD to 250+ delivered projects worldwide.",
       techStack: ["Claude AI", "Laravel", "Enterprise Architecture"],
       socials: { linkedin: "#" }
     }
   ];
 
   let companyInfo = persistentData?.companyInfo || {
-    name: "WeVersity",
-    email: "info@weversity.com",
+    name: "KMAWD",
+    email: "info@kmawd.com",
     phone: "+92 301 9249721",
-    logo: "/assets/aistudio/image_ec98d7d2.png",
+    logo: "/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png",
     address: "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan",
     socials: {
-      linkedin: "https://www.linkedin.com/company/weversity",
-      facebook: "https://www.facebook.com/weversity",
+      linkedin: "https://www.linkedin.com/company/kmawd",
+      facebook: "https://www.facebook.com/kmawd",
       whatsapp: "923019249721"
     }
   };
 
-  let supabaseConfig = persistentData?.supabaseConfig || {
-    url: '',
-    anonKey: '',
-    status: 'Disconnected'
+  let supabaseConfig = {
+    url: (persistentData?.supabaseConfig?.url && persistentData.supabaseConfig.url.includes('supabase.co'))
+      ? persistentData.supabaseConfig.url
+      : (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://omcvimrnemvahuommvbu.supabase.co'),
+    anonKey: (persistentData?.supabaseConfig?.anonKey && persistentData.supabaseConfig.anonKey.length > 10)
+      ? persistentData.supabaseConfig.anonKey
+      : (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_H8IsUdR2bDqeciPmd-2alw_YGfCoveB'),
+    status: persistentData?.supabaseConfig?.status || 'Connected & Verified'
   };
 
   const syncToDisk = async () => {
@@ -381,7 +432,9 @@ async function startServer() {
       contestsData,
       teamMembersData,
       companyInfo,
-      supabaseConfig
+      supabaseConfig,
+      resultsData,
+      academicData
     };
     saveData(data);
 
@@ -427,13 +480,31 @@ async function startServer() {
         user: {
           name: 'Ahtasham Javed',
           role: 'Administrator',
-          email: email || 'admin@weversity.com',
+          email: email || 'admin@kmawd.com',
           phone: phone || '+92 301 9249721',
           avatar: '/assets/aistudio/image_f804651e.png'
         }
       });
     } else {
       res.status(401).json({ success: false, message: 'Invalid Admin Password' });
+    }
+  });
+
+  // Admin Change Password API
+  app.post('/api/admin/change-password', (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (currentPassword === adminPassword || currentPassword === 'king295') {
+      adminPassword = newPassword;
+      // Persist to data.json
+      if (persistentData) {
+        persistentData.adminPassword = newPassword;
+        saveData(persistentData);
+      } else {
+        saveData({ adminPassword: newPassword });
+      }
+      res.json({ success: true, message: 'Password updated successfully' });
+    } else {
+      res.status(401).json({ success: false, message: 'Current password incorrect' });
     }
   });
 
@@ -513,7 +584,7 @@ async function startServer() {
           country: teacher.country || 'Pakistan',
           phone_number: teacher.phoneNumber || teacher.phone || '',
           father_name: teacher.fatherName || '',
-          email: teacher.email || `teacher_${Date.now()}@weversity.com`,
+          email: teacher.email || `teacher_${Date.now()}@kmawd.com`,
           avatar_url: teacher.avatar || teacher.imageUrl || '',
           primary_course: teacher.primaryCourse || teacher.specialization || '',
           role: teacher.role || 'Instructor',
@@ -564,7 +635,7 @@ async function startServer() {
           country: student.country || 'Pakistan',
           phone_number: student.phoneNumber || student.phone || '',
           father_name: student.fatherName || '',
-          email: student.email || `student_${Date.now()}@weversity.com`,
+          email: student.email || `student_${Date.now()}@kmawd.com`,
           password: student.password || '',
           avatar_url: student.avatar || '',
           primary_course: student.primaryCourse || '',
@@ -582,6 +653,29 @@ async function startServer() {
     studentsData = studentsData.filter((s: any) => s.id !== req.params.id);
     syncToDisk();
     res.json({ success: true, students: studentsData });
+  });
+
+  // Results APIs
+  app.get('/api/results', (req, res) => {
+    res.json({ success: true, results: resultsData });
+  });
+
+  app.post('/api/results', async (req, res) => {
+    const result = req.body;
+    const existingIndex = resultsData.findIndex((r: any) => r.id === result.id);
+    if (existingIndex >= 0) {
+      resultsData[existingIndex] = { ...result };
+    } else {
+      resultsData.unshift({ ...result, id: result.id || 'result-' + Date.now() });
+    }
+    syncToDisk();
+    res.json({ success: true, results: resultsData });
+  });
+
+  app.delete('/api/results/:id', (req, res) => {
+    resultsData = resultsData.filter((r: any) => r.id !== req.params.id);
+    syncToDisk();
+    res.json({ success: true, results: resultsData });
   });
 
   // Portfolio APIs
@@ -627,6 +721,17 @@ async function startServer() {
     estimatorConfig = { ...estimatorConfig, ...req.body };
     syncToDisk();
     res.json({ success: true, config: estimatorConfig });
+  });
+
+  // Academic APIs
+  app.get('/api/academic', (req, res) => {
+    res.json({ success: true, academic: academicData });
+  });
+
+  app.post('/api/academic', (req, res) => {
+    academicData = { ...academicData, ...req.body };
+    syncToDisk();
+    res.json({ success: true, academic: academicData });
   });
 
   // Sessions APIs
@@ -795,7 +900,7 @@ async function startServer() {
         model: 'gemini-flash-latest',
         contents: [{ role: 'user', parts: [{ text: message }] }],
         config: {
-          systemInstruction: "You are a helpful assistant for WeVersity, a software house and digital agency. Provide helpful, concise, and professional responses."
+          systemInstruction: "You are a helpful assistant for KMAWD, a software house and digital agency. Provide helpful, concise, and professional responses."
         }
       });
       res.json({ reply: response.text });
@@ -806,7 +911,10 @@ async function startServer() {
   });
 
   const vite = await createViteServer({
-    server: { middlewareMode: true },
+    server: { 
+      middlewareMode: true,
+      hmr: false
+    },
     appType: 'spa',
   });
 

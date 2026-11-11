@@ -8,7 +8,8 @@ import {
   Award,
   Globe,
   Star,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight
 } from 'lucide-react';
 import { CourseItem, COURSES } from '../data/maatiData';
 
@@ -38,109 +39,88 @@ export const StudentsView: React.FC<StudentsViewProps> = ({ students, onSelectCo
 
   return (
     <div className="py-12 sm:py-20 bg-gray-50/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-        
-        {/* Header Section */}
-        <div className="text-center space-y-5 max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-[#6D28D9] animate-pulse"></span>
-            <span>WeVersity Community</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
-            Our Registered <span className="text-[#6D28D9]">Students</span>
-          </h1>
-          <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
-            Meet the talented individuals learning and growing with WeVersity. Our community consists of dedicated learners from around the globe.
-          </p>
+      <div className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      {/* 1. Header Section matching Courses Style */}
+      <div className="text-center space-y-4 max-w-3xl mx-auto">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold uppercase tracking-wider">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
+          <span>STUDENT COMMUNITY</span>
         </div>
+        <h1 className="text-4xl sm:text-5xl font-display font-extrabold text-[#18113C] tracking-tight">
+          Our Registered <span className="text-[#6D28D9]">Learners</span>
+        </h1>
+        <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+          Meet the talented individuals learning and growing with KMAWD. Our community consists of dedicated learners from around the globe.
+        </p>
+      </div>
 
-        {/* Students Grid */}
-        {students.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {students.map((student) => (
-              <div 
-                key={student.id}
-                className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-purple-900/5 transition-all duration-500 overflow-hidden flex flex-col"
-              >
-                {/* Card Header with Image */}
-                <div className="relative h-48 overflow-hidden bg-purple-100">
+      {/* 2. Students Grid matching Courses 4-column style */}
+      {students.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {students.map((student, idx) => (
+            <div 
+              key={student.id}
+              className={`group p-6 rounded-3xl bg-white transition-all duration-300 flex flex-col justify-between relative overflow-hidden border ${
+                idx % 4 === 0 
+                  ? 'border-purple-300 shadow-md shadow-purple-900/5' 
+                  : 'border-purple-100/90'
+              } hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/12 hover:border-purple-400`}
+            >
+              <div className="space-y-4">
+                {/* Student Avatar in square badge style */}
+                <div className="w-11 h-11 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-md group-hover:border-[#6D28D9]">
                   <img 
                     src={student.avatar} 
-                    alt={student.name} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    alt={student.name}
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#18113C]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  
-                  {/* Floating Badges */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-2">
-                    <div className="bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm border border-white/20">
-                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                      <span className="text-[10px] font-bold text-gray-800">Student</span>
-                    </div>
-                  </div>
-
-                  <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-white uppercase tracking-wider">
-                      <Globe className="w-3 h-3 text-purple-300" />
-                      <span>{student.country}</span>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Card Content */}
-                <div className="p-5 space-y-4 flex-grow flex flex-col">
-                  <div 
-                    onClick={() => handleCourseClick(student.primaryCourse)}
-                    className="cursor-pointer group/title"
-                  >
-                    <h3 className="font-display font-extrabold text-lg text-[#18113C] group-hover/title:text-[#6D28D9] transition-colors line-clamp-1">
-                      {student.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-1 text-[#6D28D9] font-bold text-[11px] uppercase tracking-wide group-hover/title:underline decoration-2 underline-offset-4">
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span>{student.primaryCourse}</span>
-                    </div>
+                <div>
+                  <h3 className="font-display font-bold text-base text-[#18113C] group-hover:text-[#6D28D9] transition-colors duration-300">
+                    {student.name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-1 text-[#6D28D9] font-bold text-[10px] uppercase tracking-wide">
+                    <BookOpen className="w-3 h-3" />
+                    <span>{student.primaryCourse}</span>
                   </div>
-
-                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-3 flex-grow italic">
+                  <p className="text-xs text-gray-500 group-hover:text-gray-600 mt-2 line-clamp-3 leading-relaxed transition-colors duration-300 italic">
                     "{student.bio}"
                   </p>
+                </div>
 
-                  <div className="space-y-2 pt-2 border-t border-gray-50">
-                    <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                      <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-[#6D28D9] group-hover:bg-purple-50 transition-colors">
-                        <Mail className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="line-clamp-1 font-medium">{student.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                      <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-emerald-600 group-hover:bg-emerald-50 transition-colors">
-                        <Phone className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-medium">{student.phoneNumber}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs text-gray-600">
-                      <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:text-amber-600 group-hover:bg-amber-50 transition-colors">
-                        <MapPin className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-medium">{student.country}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <button
-                      onClick={() => handleCourseClick(student.primaryCourse)}
-                      className="w-full py-2.5 rounded-xl border-2 border-purple-50 group-hover:border-[#6D28D9]/20 group-hover:bg-[#6D28D9] flex items-center justify-center gap-2 text-[#6D28D9] group-hover:text-white transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md active:scale-95"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Verified Learner</span>
-                    </button>
-                  </div>
+                {/* Info Tags */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 border border-purple-100">
+                    {student.country}
+                  </span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    Verified Learner
+                  </span>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
+
+              {/* Bottom Row */}
+              <div className="pt-5 mt-5 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-400 block font-medium">Joined From</span>
+                  <span className="text-xs font-bold text-[#6D28D9] group-hover:text-[#5B21B6] transition-colors duration-300">
+                    {student.country}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => handleCourseClick(student.primaryCourse)}
+                  className="w-9 h-9 rounded-full bg-[#6D28D9] text-white flex items-center justify-center transition-all duration-300 group-hover:bg-[#5B21B6] group-hover:scale-110 shadow-sm"
+                  aria-label="View course"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
           <div className="py-20 text-center space-y-4 bg-white rounded-3xl border-2 border-dashed border-gray-200">
             <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto text-purple-300">
               <User className="w-8 h-8" />

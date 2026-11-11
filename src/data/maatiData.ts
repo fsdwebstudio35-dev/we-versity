@@ -60,17 +60,37 @@ export interface BlogPost {
   tags: string[];
 }
 
+export interface Result {
+  id: string;
+  studentName: string;
+  courseTitle: string;
+  score: string;
+  status: string;
+  date: string;
+  avatar: string;
+  isCertified: boolean;
+}
+
+export const RESULTS: Result[] = [
+  { id: "1", studentName: "Ahmed Raza", courseTitle: "Web Development", score: "98%", status: "Distinction", date: "Oct 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed", isCertified: true },
+  { id: "2", studentName: "Sara Khan", courseTitle: "UI/UX Design", score: "95%", status: "Merit", date: "Sep 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sara", isCertified: true },
+  { id: "3", studentName: "Bilal Sheikh", courseTitle: "Laravel Backend", score: "92%", status: "Merit", date: "Oct 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bilal", isCertified: true },
+  { id: "4", studentName: "Zainab Ali", courseTitle: "Claude AI Mastery", score: "100%", status: "Distinction", date: "Nov 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Zainab", isCertified: true },
+  { id: "5", studentName: "Hamza Malik", courseTitle: "Flutter Mobile", score: "88%", status: "Pass", date: "Aug 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Hamza", isCertified: true },
+  { id: "6", studentName: "Dua Fatima", courseTitle: "Digital Marketing", score: "94%", status: "Merit", date: "Oct 2024", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Dua", isCertified: true },
+];
+
 export const COMPANY_INFO = {
-  name: "WeVersity",
-  legalName: "WeVersity Technologies (Pvt) Ltd",
+  name: "KMAWD",
+  legalName: "KMAWD Technologies (Pvt) Ltd",
   tagline: "Websites & Software That Mean Business",
   subtagline: "Empowering businesses worldwide through high-performance web development, custom software engineering, and digital growth.",
   foundedYear: 2016,
   phone: "+92 301 9249721",
   whatsappNumber: "923019249721",
-  email: "info@weversity.com",
-  secondaryEmail: "info@weversitynologies.pk",
-  supportEmail: "support@weversity.com",
+  email: "info@kmawd.com",
+  secondaryEmail: "info@kmawd.pk",
+  supportEmail: "support@kmawd.com",
   headquarters: {
     title: "Lahore Headquarters",
     address: "Turner Road, Off Mall Road, Garhi Shahu, Lahore, Punjab 54000, Pakistan",
@@ -90,16 +110,16 @@ export const COMPANY_INFO = {
     { value: "14+", label: "Countries Served" }
   ],
   socials: {
-    linkedin: "https://www.linkedin.com/company/weversity",
-    facebook: "https://www.facebook.com/weversity",
-    youtube: "https://www.youtube.com/@weversity",
-    tiktok: "https://www.tiktok.com/@weversity",
+    linkedin: "https://www.linkedin.com/company/kmawd",
+    facebook: "https://www.facebook.com/kmawd",
+    youtube: "https://www.youtube.com/@kmawd",
+    tiktok: "https://www.tiktok.com/@kmawd",
     whatsapp: "https://wa.me/923019249721",
-    github: "https://github.com/weversity",
-    clutch: "https://clutch.co/profile/maati-technologies"
+    github: "https://github.com/kmawd",
+    clutch: "https://clutch.co/profile/kmawd-technologies"
   },
   network: {
-    weversity: "https://www.weversity.org",
+    kmawd: "https://www.kmawd.org",
     ecomhub: "https://ecomhubusa.com"
   }
 };
@@ -1244,4 +1264,64 @@ export const DEFAULT_ESTIMATOR_CONFIG: EstimatorConfig = {
     PKR: 280,
     GBP: 0.79
   }
+};
+
+export interface AcademicPillar {
+  title: string;
+  desc: string;
+  iconName: string;
+  color: string;
+  bg: string;
+}
+
+export interface AcademicCohort {
+  id: string;
+  course: string;
+  date: string;
+  status: 'Filling Fast' | 'Open' | 'Closed' | 'Early Bird';
+  spots: string;
+}
+
+export interface AcademicData {
+  pillars: AcademicPillar[];
+  cohorts: AcademicCohort[];
+  stats: { label: string; val: string }[];
+}
+
+export const DEFAULT_ACADEMIC_DATA: AcademicData = {
+  pillars: [
+    {
+      title: "Industry Verified",
+      desc: "Curriculum designed around current market demands and global engineering standards.",
+      iconName: "ShieldCheck",
+      color: "text-emerald-600",
+      bg: "bg-emerald-50"
+    },
+    {
+      title: "Practical Grading",
+      desc: "Scores based on 70% project work and 30% technical assessments and code reviews.",
+      iconName: "FileCheck",
+      color: "text-[#6D28D9]",
+      bg: "bg-purple-50"
+    },
+    {
+      title: "Live Mentorship",
+      desc: "Real-time interaction with senior developers from our Lahore software house.",
+      iconName: "Users",
+      color: "text-blue-600",
+      bg: "bg-blue-50"
+    }
+  ],
+  cohorts: [
+    { id: "1", course: "Master Claude AI", date: "Dec 05, 2026", status: "Filling Fast", spots: "8 left" },
+    { id: "2", course: "Modern Web Development", date: "Jan 12, 2027", status: "Open", spots: "25 spots" },
+    { id: "3", course: "Laravel Backend Mastery", date: "Dec 15, 2026", status: "Closed", spots: "Sold Out" },
+    { id: "4", course: "Flutter Mobile Apps", date: "Jan 05, 2027", status: "Early Bird", spots: "Limited" }
+  ],
+  stats: [
+    { label: "Graduation Rate", val: "92%" },
+    { label: "Job Placements", val: "78%" },
+    { label: "Partner Companies", val: "45+" },
+    { label: "Total Graduates", val: "1,200+" }
+  ]
 };

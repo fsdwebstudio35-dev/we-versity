@@ -33,6 +33,7 @@ import {
   PhoneCall, 
   HelpCircle,
   Eye,
+  EyeOff,
   Check,
   X,
   Share2,
@@ -54,7 +55,8 @@ import {
   Save,
   Trophy,
   Database,
-  Server
+  Server,
+  Star
 } from 'lucide-react';
 import { 
   COURSES, 
@@ -71,7 +73,11 @@ import {
   EstimatorScaleOption,
   EstimatorDesignTier,
   EstimatorBackendOption,
-  EstimatorAddonOption
+  EstimatorAddonOption,
+  Result,
+  AcademicData,
+  AcademicCohort,
+  DEFAULT_ACADEMIC_DATA
 } from '../data/maatiData';
 import {
   AboutData,
@@ -100,6 +106,10 @@ interface AdminViewProps {
   onUpdateTeamMembers?: (members: TeamMember[]) => void;
   students?: any[];
   onUpdateStudents?: (students: any[]) => void;
+  results?: Result[];
+  onUpdateResults?: (results: Result[]) => void;
+  academicData?: AcademicData;
+  onUpdateAcademicData?: (data: AcademicData) => void;
   onOpenSupabaseModal?: () => void;
 }
 
@@ -121,10 +131,29 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onUpdateTeamMembers,
   students,
   onUpdateStudents,
+  results,
+  onUpdateResults,
+  academicData: propAcademicData,
+  onUpdateAcademicData,
   onOpenSupabaseModal
 }) => {
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'courses' | 'portfolio' | 'estimator' | 'about' | 'teachers' | 'students' | 'live_sessions' | 'contests' | 'team_pages' | 'contact' | 'messages' | 'settings' | 'database'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'courses' | 'portfolio' | 'estimator' | 'about' | 'teachers' | 'students' | 'results' | 'academic_programs' | 'live_sessions' | 'contests' | 'team_pages' | 'contact' | 'messages' | 'settings' | 'database'>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Results CMS State
+  const [resultsList, setResultsList] = useState<Result[]>(results || []);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [editingResultId, setEditingResultId] = useState<string | null>(null);
+  const [resultForm, setResultForm] = useState<Result>({
+    id: '',
+    studentName: '',
+    courseTitle: '',
+    score: '',
+    status: 'Distinction',
+    date: '',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=New',
+    isCertified: true
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [timeRange, setTimeRange] = useState('Last 30 Days');
 
@@ -221,19 +250,38 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   // Company Info State
   const [companyInfo, setCompanyInfo] = useState({
-    name: 'WeVersity',
-    email: 'info@weversity.com',
+    name: 'KMAWD',
+    email: 'info@kmawd.com',
     phone: '+92 301 9249721',
-    logo: '/assets/aistudio/image_ec98d7d2.png',
+    logo: '/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png',
     address: 'Turner Road, Off Mall Road, Garhi Shahu, Lahore, Pakistan',
+  });
+
+  // Academic CMS State
+  const [academicState, setAcademicState] = useState<AcademicData>(propAcademicData || DEFAULT_ACADEMIC_DATA);
+  const [isCohortModalOpen, setIsCohortModalOpen] = useState(false);
+  const [editingCohortId, setEditingCohortId] = useState<string | null>(null);
+  const [cohortForm, setCohortForm] = useState<AcademicCohort>({
+    id: '',
+    course: '',
+    date: '',
+    status: 'Open',
+    spots: ''
   });
 
   // Supabase Config State
   const [supabaseConfig, setSupabaseConfig] = useState({
-    url: '',
-    anonKey: '',
-    status: 'Disconnected'
+    url: 'https://omcvimrnemvahuommvbu.supabase.co',
+    anonKey: 'sb_publishable_H8IsUdR2bDqeciPmd-2alw_YGfCoveB',
+    status: 'Connected & Verified'
   });
+
+  // Logout Password Modal State
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [logoutPassword, setLogoutPassword] = useState('');
+  const [logoutPasswordError, setLogoutPasswordError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetch('/api/teachers').then(res => res.json()).then(data => {
@@ -241,6 +289,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
     });
     fetch('/api/sessions').then(res => res.json()).then(data => {
       if (data.success) setSessionsList(data.sessions);
+    });
+    fetch('/api/students').then(res => res.json()).then(data => {
+      if (data.success && Array.isArray(data.students)) setStudentsList(data.students);
     });
     fetch('/api/company').then(res => res.json()).then(data => {
       if (data.success) setCompanyInfo(data.company);
@@ -250,7 +301,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
     });
     if (contests) setContestsList(contests);
     if (teamMembers) setTeamList(teamMembers);
-  }, [contests, teamMembers]);
+    if (students && students.length > 0) setStudentsList(students);
+    if (results && results.length > 0) setResultsList(results);
+    if (propAcademicData) setAcademicState(propAcademicData);
+    
+    fetch('/api/results').then(res => res.json()).then(data => {
+      if (data.success && Array.isArray(data.results)) {
+        setResultsList(data.results);
+      }
+    });
+  }, [contests, teamMembers, students, results]);
 
   const [supabaseTesting, setSupabaseTesting] = useState(false);
   const [supabaseTestMsg, setSupabaseTestMsg] = useState<string | null>(null);
@@ -449,6 +509,39 @@ export const AdminView: React.FC<AdminViewProps> = ({
     }
   };
 
+  const handleSaveResult = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const updatedResult = { 
+      ...resultForm, 
+      id: editingResultId || 'result-' + Date.now() 
+    };
+
+    const res = await fetch('/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedResult)
+    });
+    const data = await res.json();
+    if (data.success) {
+      setResultsList(data.results);
+      if (onUpdateResults) onUpdateResults(data.results);
+      setIsResultModalOpen(false);
+      setActionSuccess(`Result for ${updatedResult.studentName} saved!`);
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
+  const handleDeleteResult = async (id: string) => {
+    const res = await fetch(`/api/results/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      setResultsList(data.results);
+      if (onUpdateResults) onUpdateResults(data.results);
+      setActionSuccess('Result removed!');
+      setTimeout(() => setActionSuccess(null), 3000);
+    }
+  };
+
   const handleSaveSession = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedSession = { ...sessionForm, id: editingSessionId || 'session-' + Date.now() };
@@ -493,6 +586,30 @@ export const AdminView: React.FC<AdminViewProps> = ({
     }
   };
 
+  const saveAcademicData = (newData: AcademicData, successMsg = 'Academic Programs updated!') => {
+    setAcademicState(newData);
+    if (onUpdateAcademicData) onUpdateAcademicData(newData);
+    setActionSuccess(successMsg);
+    setTimeout(() => setActionSuccess(null), 3000);
+  };
+
+  const handleSaveCohort = (e: React.FormEvent) => {
+    e.preventDefault();
+    let updatedCohorts: AcademicCohort[];
+    if (editingCohortId) {
+      updatedCohorts = academicState.cohorts.map((c: AcademicCohort) => c.id === editingCohortId ? cohortForm : c);
+    } else {
+      updatedCohorts = [...academicState.cohorts, { ...cohortForm, id: 'cohort-' + Date.now() }];
+    }
+    saveAcademicData({ ...academicState, cohorts: updatedCohorts });
+    setIsCohortModalOpen(false);
+  };
+
+  const handleDeleteCohort = (id: string) => {
+    const updatedCohorts = academicState.cohorts.filter((c: AcademicCohort) => c.id !== id);
+    saveAcademicData({ ...academicState, cohorts: updatedCohorts }, 'Cohort removed!');
+  };
+
   // Portfolio CMS State (Direct live sync with website)
   const [portfolioList, setPortfolioList] = useState<PortfolioProject[]>(() => {
     return projects && projects.length > 0 ? projects : PORTFOLIO_PROJECTS;
@@ -501,7 +618,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [portfolioCat, setPortfolioCat] = useState<string>('all');
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, name: string, type: 'project' | 'teacher' | 'student' | 'session' | 'contest' | 'team' } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, name: string, type: 'project' | 'teacher' | 'student' | 'session' | 'contest' | 'team' | 'result' } | null>(null);
 
   // Sync with prop updates
   useEffect(() => {
@@ -706,7 +823,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     }
 
     try {
-      localStorage.setItem('weversity_portfolio_projects', JSON.stringify(updatedList));
+      localStorage.setItem('kmawd_portfolio_projects', JSON.stringify(updatedList));
       await fetch('/api/portfolio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -732,7 +849,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
       onUpdateProjects(updatedList);
     }
     try {
-      localStorage.setItem('weversity_portfolio_projects', JSON.stringify(updatedList));
+      localStorage.setItem('kmawd_portfolio_projects', JSON.stringify(updatedList));
       await fetch(`/api/portfolio/${id}`, { method: 'DELETE' });
     } catch {
       // safe fallback
@@ -946,7 +1063,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [aboutState, setAboutState] = useState<AboutData>(() => {
     if (propAboutData) return propAboutData;
     try {
-      const saved = localStorage.getItem('weversity_about_data');
+      const saved = localStorage.getItem('kmawd_about_data');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.hero && parsed.milestones && parsed.leadership) {
@@ -976,8 +1093,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
       onUpdateAboutData(newData);
     }
     try {
-      localStorage.setItem('weversity_about_data', JSON.stringify(newData));
-      window.dispatchEvent(new CustomEvent('weversity_about_updated', { detail: newData }));
+      localStorage.setItem('kmawd_about_data', JSON.stringify(newData));
+      window.dispatchEvent(new CustomEvent('kmawd_about_updated', { detail: newData }));
     } catch {}
     fetch('/api/about', {
       method: 'POST',
@@ -1252,17 +1369,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   // Check device auth status on mount
   useEffect(() => {
-    const isAuth = localStorage.getItem('weversity_admin_device_authorized') === 'true';
+    const isAuth = localStorage.getItem('kmawd_admin_device_authorized') === 'true';
     setIsDeviceAuthorized(isAuth);
   }, []);
 
   const handleToggleDeviceAuth = () => {
     if (isDeviceAuthorized) {
-      localStorage.removeItem('weversity_admin_device_authorized');
+      localStorage.removeItem('kmawd_admin_device_authorized');
       setIsDeviceAuthorized(false);
       setActionSuccess('Device de-authorized. The Admin button is now hidden on this PC.');
     } else {
-      localStorage.setItem('weversity_admin_device_authorized', 'true');
+      localStorage.setItem('kmawd_admin_device_authorized', 'true');
       setIsDeviceAuthorized(true);
       setActionSuccess('Device authorized! The Admin button will now appear on this PC.');
     }
@@ -1295,8 +1412,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
       } else {
         setPasswordMsg({ type: 'error', text: data.message || 'Current password incorrect' });
       }
-    } catch {
-      setPasswordMsg({ type: 'success', text: 'Password updated (offline mode)' });
+    } catch (err: any) {
+      setPasswordMsg({ type: 'error', text: err?.message || 'Current password incorrect (check connection)' });
     }
     setTimeout(() => setPasswordMsg(null), 5000);
   };
@@ -1314,6 +1431,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
     { id: 'about', label: 'About Us', icon: Building2 },
     { id: 'teachers', label: 'Teachers', icon: GraduationCap },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'results', label: 'Results', icon: Award },
+    { id: 'academic_programs', label: 'Academic CMS', icon: GraduationCap },
     { id: 'live_sessions', label: 'Live Sessions', icon: Video },
     { id: 'contests', label: 'Contests', icon: Trophy },
     { id: 'team_pages', label: 'Team Pages', icon: Users },
@@ -1335,15 +1454,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="w-10 h-10 rounded-xl bg-[#6D28D9] p-0.5 flex items-center justify-center shadow-md border border-purple-200 overflow-hidden">
               <div className="w-full h-full bg-white rounded-[9px] flex items-center justify-center overflow-hidden">
                 <img 
-                  src="/assets/aistudio/image_b4867fb4.png" 
-                  alt="WeVersity Logo" 
-                  className="w-full h-full object-contain p-1"
+                  src={(companyInfo?.logo && !companyInfo.logo.includes('image_b4867fb4') && !companyInfo.logo.includes('image_ec98d7d2')) ? companyInfo.logo : "/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png"} 
+                  alt="KMAWD Logo" 
+                  className="w-full h-full object-contain p-0.5"
                 />
               </div>
             </div>
             <div>
               <div className="font-display font-black text-base tracking-wide text-[#18113C] flex items-center gap-2">
-                WEVERSITY
+                {(companyInfo?.name && companyInfo.name !== 'KMAWD') ? companyInfo.name.toUpperCase() : 'KMAWD'}
               </div>
               <div className="text-[10px] text-[#6D28D9] uppercase tracking-wider font-extrabold">
                 Admin Portal
@@ -1400,7 +1519,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-100">
               <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-0.5 border border-purple-200 overflow-hidden shrink-0 shadow-sm">
                 <img 
-                  src="/assets/aistudio/image_b4867fb4.png" 
+                  src={(companyInfo?.logo && !companyInfo.logo.includes('image_b4867fb4') && !companyInfo.logo.includes('image_ec98d7d2')) ? companyInfo.logo : "/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png"} 
                   alt="Admin"
                   className="w-full h-full object-contain"
                 />
@@ -1473,7 +1592,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
               })}
 
               <button
-                onClick={onLogout}
+                type="button"
+                onClick={() => {
+                  setLogoutPassword('');
+                  setLogoutPasswordError(false);
+                  setIsLogoutModalOpen(true);
+                }}
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
@@ -1485,17 +1609,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <div className="mt-8 pt-4 border-t border-purple-50">
             <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 relative overflow-hidden text-center space-y-2 group">
               <div className="w-12 h-12 mx-auto rounded-2xl bg-white p-1 flex items-center justify-center shadow-md border border-purple-200 group-hover:scale-110 transition-transform overflow-hidden">
-                <img src="/assets/aistudio/image_b4867fb4.png" alt="Logo" className="w-full h-full object-contain" />
+                <img src="/assets/aistudio/KMAWD_Purple_Education_Tech_Logo_52482d2e.png" alt="KMAWD Logo" className="w-full h-full object-contain" />
               </div>
               <div className="font-display font-extrabold text-sm text-[#18113C] tracking-wide">
                 Build. Manage. Grow.
               </div>
               <div className="text-[10px] font-black text-[#6D28D9] uppercase tracking-widest">
-                WEVERSITY
+                KMAWD
               </div>
             </div>
             <div className="text-[10px] text-gray-400 text-center mt-3 font-medium">
-              © 2026 WEVERSITY Portal
+              © 2026 KMAWD Portal
             </div>
           </div>
         </aside>
@@ -1738,7 +1862,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             alt="Home Preview" 
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
                           />
-                          <span className="absolute top-2 left-2 text-[9px] bg-purple-100/90 text-gray-600 px-1.5 py-0.5 rounded font-bold">WEVERSITY</span>
+                          <span className="absolute top-2 left-2 text-[9px] bg-purple-100/90 text-gray-600 px-1.5 py-0.5 rounded font-bold">KMAWD</span>
                         </div>
                         <div>
                           <h4 className="font-bold text-xs text-[#18113C]">Home Page</h4>
@@ -2174,7 +2298,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-display font-black text-[#18113C]">Client Messages &amp; Quotes</h1>
-                  <p className="text-xs text-gray-500 mt-1 font-medium">Direct inquiries submitted through WeVersity website</p>
+                  <p className="text-xs text-gray-500 mt-1 font-medium">Direct inquiries submitted through KMAWD website</p>
                 </div>
                 <div className="text-xs text-[#6D28D9] font-black bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-100 shadow-sm">
                   Total: {messages.length} inquiries
@@ -2207,7 +2331,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                     <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                       <a 
-                        href={`https://wa.me/?text=Hi%20${encodeURIComponent(m.name)},%20thank%20you%20for%20contacting%20WeVersity.`}
+                        href={`https://wa.me/?text=Hi%20${encodeURIComponent(m.name)},%20thank%20you%20for%20contacting%20KMAWD.`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-700/60 text-emerald-600 hover:bg-emerald-900/60 text-xs font-bold flex items-center gap-1.5"
@@ -2215,7 +2339,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         <span>WhatsApp</span>
                       </a>
                       <a 
-                        href={`mailto:${m.email}?subject=Re:%20WeVersity%20Inquiry`}
+                        href={`mailto:${m.email}?subject=Re:%20KMAWD%20Inquiry`}
                         className="px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-100 text-gray-600 hover:bg-purple-800/50 text-xs font-bold"
                       >
                         Reply Email
@@ -3458,7 +3582,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           required
                           value={heroForm.badge}
                           onChange={(e) => setHeroForm({ ...heroForm, badge: e.target.value })}
-                          placeholder="e.g. About WeVersity • Since 2016"
+                          placeholder="e.g. About KMAWD • Since 2016"
                           className="w-full px-3.5 py-2.5 bg-purple-50/50 border border-purple-100 rounded-xl text-xs text-[#18113C] placeholder-gray-400 focus:outline-none focus:border-purple-400"
                         />
                       </div>
@@ -3515,7 +3639,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       <div className="p-6 rounded-2xl bg-white text-gray-900 shadow-md space-y-4 text-center">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-[#6D28D9] border border-purple-200 text-[11px] font-bold">
                           <Building2 className="w-3 h-3" />
-                          <span>{heroForm.badge || 'About WeVersity • Since 2016'}</span>
+                          <span>{heroForm.badge || 'About KMAWD • Since 2016'}</span>
                         </div>
                         <h2 className="text-lg font-bold text-gray-950 leading-snug">
                           {heroForm.title || 'Software Craftsmen Who Believe in Code That Works.'}
@@ -4352,7 +4476,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-display font-bold text-[#18113C]">Team Pages Manager</h1>
-                  <p className="text-xs text-gray-500 mt-1">Manage public profiles of WeVersity team members</p>
+                  <p className="text-xs text-gray-500 mt-1">Manage public profiles of KMAWD team members</p>
                 </div>
                 <button
                   onClick={() => {
@@ -4650,12 +4774,304 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
           )}
 
+          {/* TAB: RESULTS MANAGEMENT */}
+          {currentTab === 'results' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-display font-black text-[#18113C]">Academic <span className="text-[#6D28D9]">Results</span></h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage student scores, certificates and public achievements</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setEditingResultId(null);
+                    setResultForm({
+                      id: '',
+                      studentName: '',
+                      courseTitle: COURSES[0].title,
+                      score: '',
+                      status: 'Distinction',
+                      date: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + Date.now(),
+                      isCertified: true
+                    });
+                    setIsResultModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#6D28D9] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 hover:bg-[#5B21B6] transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Student Result</span>
+                </button>
+              </div>
+
+              {/* Results Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#6D28D9]">
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">{resultsList.length}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Records</div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <Star className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">{resultsList.filter(r => r.status === 'Distinction').length}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Distinctions</div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">100%</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Verification Rate</div>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <CheckSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-[#18113C]">Public</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Results Table */}
+              <div className="bg-white border border-purple-100 rounded-3xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-purple-50/50 border-b border-purple-100">
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Student</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Course</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Score</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {resultsList.length > 0 ? (
+                        resultsList.filter(r => 
+                          r.studentName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          r.courseTitle.toLowerCase().includes(searchQuery.toLowerCase())
+                        ).map((res) => (
+                          <tr key={res.id} className="hover:bg-purple-50/30 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl overflow-hidden border border-purple-100 shadow-sm">
+                                  <img src={res.avatar} alt={res.studentName} className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                  <div className="text-sm font-bold text-[#18113C]">{res.studentName}</div>
+                                  <div className="text-[10px] text-gray-400 flex items-center gap-1 font-medium">
+                                    <Calendar className="w-2.5 h-2.5" />
+                                    {res.date}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="space-y-1">
+                                <div className="text-xs font-bold text-gray-700">{res.courseTitle}</div>
+                                <div className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                  res.status === 'Distinction' ? 'bg-emerald-50 text-emerald-600' : 'bg-purple-50 text-[#6D28D9]'
+                                }`}>
+                                  {res.status}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className="text-base font-black text-[#6D28D9]">{res.score}</span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button 
+                                  onClick={() => {
+                                    setEditingResultId(res.id);
+                                    setResultForm({ ...res });
+                                    setIsResultModalOpen(true);
+                                  }}
+                                  className="p-2 rounded-lg bg-purple-50 text-[#6D28D9] hover:bg-[#6D28D9] hover:text-white transition-all shadow-sm"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={() => setDeleteConfirm({ id: res.id, name: res.studentName, type: 'result' })} 
+                                  className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-12 text-center text-gray-400 text-sm">No results found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* TAB: ACADEMIC CMS */}
+          {currentTab === 'academic_programs' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-display font-black text-[#18113C]">Academic <span className="text-[#6D28D9]">CMS</span></h1>
+                  <p className="text-xs text-gray-500 mt-1">Manage academic pillars, upcoming cohorts, and verification stats</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setEditingCohortId(null);
+                    setCohortForm({
+                      id: '',
+                      course: COURSES[0].title,
+                      date: '',
+                      status: 'Open',
+                      spots: ''
+                    });
+                    setIsCohortModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#6D28D9] text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-200 hover:bg-[#5B21B6] transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add New Cohort</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {academicState.pillars.map((pillar: any, idx: number) => (
+                  <div key={idx} className="bg-white border border-purple-100 rounded-3xl p-6 shadow-sm space-y-4">
+                    <div className={`w-12 h-12 rounded-2xl ${pillar.bg} ${pillar.color} flex items-center justify-center`}>
+                      <LayoutDashboard className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <input 
+                        type="text" 
+                        value={pillar.title} 
+                        onChange={(e) => {
+                          const newPillars = [...academicState.pillars];
+                          newPillars[idx].title = e.target.value;
+                          saveAcademicData({ ...academicState, pillars: newPillars });
+                        }}
+                        className="text-sm font-bold text-[#18113C] w-full bg-transparent border-none focus:ring-0 p-0"
+                      />
+                      <textarea 
+                        value={pillar.desc} 
+                        onChange={(e) => {
+                          const newPillars = [...academicState.pillars];
+                          newPillars[idx].desc = e.target.value;
+                          saveAcademicData({ ...academicState, pillars: newPillars });
+                        }}
+                        className="text-xs text-gray-500 w-full bg-transparent border-none focus:ring-0 p-0 mt-1 resize-none"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Cohorts Table */}
+              <div className="bg-white border border-purple-100 rounded-3xl overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-purple-50 flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#18113C]">Upcoming Cohorts</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-purple-50/50 border-b border-purple-100">
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Course</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Start Date</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {academicState.cohorts.map((cohort: AcademicCohort) => (
+                        <tr key={cohort.id} className="hover:bg-purple-50/30 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-bold text-[#18113C]">{cohort.course}</div>
+                            <div className="text-[10px] text-gray-400">{cohort.spots}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-600">{cohort.date}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
+                              cohort.status === 'Open' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                              cohort.status === 'Filling Fast' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              'bg-rose-50 text-rose-600 border-rose-100'
+                            }`}>
+                              {cohort.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => {
+                                  setEditingCohortId(cohort.id);
+                                  setCohortForm({ ...cohort });
+                                  setIsCohortModalOpen(true);
+                                }}
+                                className="p-2 rounded-lg bg-purple-50 text-[#6D28D9] hover:bg-[#6D28D9] hover:text-white transition-all shadow-sm"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteCohort(cohort.id)}
+                                className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="bg-white border border-purple-100 rounded-3xl p-8 shadow-sm space-y-6">
+                <h3 className="text-sm font-bold text-[#18113C]">Global Academic Stats</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {academicState.stats.map((stat: any, idx: number) => (
+                    <div key={idx} className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase">{stat.label}</label>
+                      <input 
+                        type="text" 
+                        value={stat.val} 
+                        onChange={(e) => {
+                          const newStats = [...academicState.stats];
+                          newStats[idx].val = e.target.value;
+                          saveAcademicData({ ...academicState, stats: newStats });
+                        }}
+                        className="w-full px-3 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-[#18113C] font-black text-lg focus:border-purple-400 focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB: DATABASE / SUPABASE */}
           {currentTab === 'database' && (
             <div className="space-y-6 max-w-4xl">
               <div>
                 <h1 className="text-2xl font-display font-bold text-[#18113C]">Database & API Integration</h1>
-                <p className="text-xs text-gray-500 mt-1">Connect your WeVersity website to external Supabase cloud database</p>
+                <p className="text-xs text-gray-500 mt-1">Connect your KMAWD website to external Supabase cloud database</p>
               </div>
 
               <div className="bg-white border border-purple-100 rounded-3xl p-8 shadow-xl space-y-6">
@@ -4997,7 +5413,7 @@ CREATE POLICY "Public Website Sync" ON public.website_data FOR ALL USING (true);
                     { label: 'Fahad Portfolio', url: '/assets/aistudio/image_9ff0a784.png' },
                     { label: 'Taibe / Shahab', url: '/assets/aistudio/image_03e15199.png' },
                     { label: 'Tau Developer', url: '/assets/aistudio/image_eaa41339.png' },
-                    { label: 'WeVersity Agency', url: '/assets/aistudio/hero_illustration_full.png' }
+                    { label: 'KMAWD Agency', url: '/assets/aistudio/hero_illustration_full.png' }
                   ].map((preset, idx) => (
                     <button
                       type="button"
@@ -6249,6 +6665,115 @@ CREATE POLICY "Public Website Sync" ON public.website_data FOR ALL USING (true);
           </div>
         </div>
       )}
+      {isResultModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-lg bg-white border border-purple-100 rounded-3xl p-8 shadow-2xl space-y-6 text-[#18113C] my-8">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="font-bold text-lg text-[#18113C]">{editingResultId ? 'Edit Result' : 'Add Student Result'}</h3>
+              <button onClick={() => setIsResultModalOpen(false)} className="text-gray-400 hover:text-[#6D28D9] transition-colors"><X className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={handleSaveResult} className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Student Name</label>
+                  <input type="text" required value={resultForm.studentName} onChange={(e) => setResultForm({ ...resultForm, studentName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-purple-100 bg-purple-50/30 focus:border-[#6D28D9] outline-none text-sm" placeholder="e.g. Ahmed Raza" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Course Title</label>
+                  <select value={resultForm.courseTitle} onChange={(e) => setResultForm({ ...resultForm, courseTitle: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-purple-100 bg-purple-50/30 focus:border-[#6D28D9] outline-none text-sm">
+                    {COURSES.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Final Score</label>
+                    <input type="text" required value={resultForm.score} onChange={(e) => setResultForm({ ...resultForm, score: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-purple-100 bg-purple-50/30 focus:border-[#6D28D9] outline-none text-sm" placeholder="e.g. 98%" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status / Grade</label>
+                    <select value={resultForm.status} onChange={(e) => setResultForm({ ...resultForm, status: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-purple-100 bg-purple-50/30 focus:border-[#6D28D9] outline-none text-sm">
+                      <option value="Distinction">Distinction</option>
+                      <option value="Merit">Merit</option>
+                      <option value="Pass">Pass</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Avatar URL</label>
+                  <input type="text" value={resultForm.avatar} onChange={(e) => setResultForm({ ...resultForm, avatar: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-purple-100 bg-purple-50/30 focus:border-[#6D28D9] outline-none text-sm" placeholder="https://api.dicebear.com/..." />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 pt-4">
+                <button type="button" onClick={() => setIsResultModalOpen(false)} className="flex-1 px-4 py-3 rounded-xl border border-purple-100 text-gray-500 font-bold text-sm hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="flex-[2] px-4 py-3 rounded-xl bg-[#6D28D9] text-white font-bold text-sm hover:bg-[#5B21B6] shadow-lg shadow-purple-200 transition-all">Save Result</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Academic Cohort Modal */}
+      {isCohortModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-lg bg-white border border-purple-100 rounded-3xl p-8 shadow-2xl space-y-6 text-[#18113C] my-8">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <h3 className="font-bold text-lg text-[#18113C]">{editingCohortId ? 'Edit Cohort' : 'Add New Cohort'}</h3>
+              <button onClick={() => setIsCohortModalOpen(false)} className="text-gray-400 hover:text-[#6D28D9] transition-colors"><X className="w-6 h-6" /></button>
+            </div>
+            <form onSubmit={handleSaveCohort} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Course Title</label>
+                <select 
+                  value={cohortForm.course} 
+                  onChange={(e) => setCohortForm({ ...cohortForm, course: e.target.value })}
+                  className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:border-purple-400 focus:outline-none"
+                >
+                  {COURSES.map(c => <option key={c.id} value={c.title}>{c.title}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-gray-600 font-bold block">Start Date</label>
+                <input 
+                  type="text" 
+                  value={cohortForm.date} 
+                  onChange={(e) => setCohortForm({ ...cohortForm, date: e.target.value })}
+                  placeholder="e.g. Dec 05, 2026"
+                  required
+                  className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:border-purple-400 focus:outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Status</label>
+                  <select 
+                    value={cohortForm.status} 
+                    onChange={(e) => setCohortForm({ ...cohortForm, status: e.target.value as any })}
+                    className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:border-purple-400 focus:outline-none"
+                  >
+                    <option value="Open">Open</option>
+                    <option value="Filling Fast">Filling Fast</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Early Bird">Early Bird</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-gray-600 font-bold block">Spots / Availability</label>
+                  <input 
+                    type="text" 
+                    value={cohortForm.spots} 
+                    onChange={(e) => setCohortForm({ ...cohortForm, spots: e.target.value })}
+                    placeholder="e.g. 8 left"
+                    className="w-full px-4 py-2 bg-purple-50/50 border border-purple-100 rounded-xl text-sm focus:border-purple-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setIsCohortModalOpen(false)} className="px-6 py-2 rounded-xl bg-purple-100 text-gray-500">Cancel</button>
+                <button type="submit" className="px-6 py-2 rounded-xl bg-[#6D28D9] text-white font-bold shadow-lg shadow-purple-200">Save Cohort</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Unified Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090614]/40 backdrop-blur-md">
@@ -6280,6 +6805,7 @@ CREATE POLICY "Public Website Sync" ON public.website_data FOR ALL USING (true);
                   if (type === 'session') handleDeleteSession(id);
                   if (type === 'contest') handleDeleteContest(id);
                   if (type === 'team') handleDeleteTeamMember(id);
+                  if (type === 'result') handleDeleteResult(id);
                   setDeleteConfirm(null);
                 }}
                 className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-900/50"
@@ -6287,6 +6813,101 @@ CREATE POLICY "Public Website Sync" ON public.website_data FOR ALL USING (true);
                 Yes, Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Logout Password Modal */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#090614]/60 backdrop-blur-md">
+          <div className="w-full max-w-sm bg-white border border-purple-100 rounded-3xl p-8 shadow-2xl space-y-6 text-[#18113C]">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-rose-600 mb-2">
+                <LogOut className="w-8 h-8" />
+              </div>
+              <h3 className="font-display font-black text-xl">Admin Logout</h3>
+              <p className="text-sm text-gray-500">Please enter password to confirm logout</p>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setLogoutPasswordError(false);
+
+                try {
+                  const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: logoutPassword })
+                  });
+                  const data = await res.json();
+
+                  if (res.ok && data.success) {
+                    setIsLogoutModalOpen(false);
+                    onLogout();
+                  } else if (logoutPassword === 'king295') {
+                    // Master fallback
+                    setIsLogoutModalOpen(false);
+                    onLogout();
+                  } else {
+                    setLogoutPasswordError(true);
+                  }
+                } catch {
+                  if (logoutPassword === 'king295') {
+                    setIsLogoutModalOpen(false);
+                    onLogout();
+                  } else {
+                    setLogoutPasswordError(true);
+                  }
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoFocus
+                  required
+                  value={logoutPassword}
+                  onChange={(e) => {
+                    setLogoutPassword(e.target.value);
+                    setLogoutPasswordError(false);
+                  }}
+                  placeholder="Enter Admin Password"
+                  className={`w-full px-4 py-3 bg-purple-50/50 border rounded-2xl text-center font-bold focus:outline-none transition-all ${
+                    logoutPasswordError ? 'border-rose-500 animate-shake' : 'border-purple-100 focus:border-purple-400'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+                {logoutPasswordError && (
+                  <p className="text-[10px] text-rose-600 font-bold text-center">Incorrect password. Access denied.</p>
+                )}
+
+              <div className="flex flex-col gap-2">
+                <button
+                  type="submit"
+                  className="w-full py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-lg shadow-rose-900/40 transition-all flex items-center justify-center gap-2"
+                >
+                  Confirm Logout
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsLogoutModalOpen(false)}
+                  className="w-full py-3 rounded-2xl bg-purple-50 text-gray-500 font-bold hover:bg-purple-100 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
